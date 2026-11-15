@@ -445,7 +445,7 @@ body {
 	<div class = "dosimeter-footer">
 		<span id='radiationStatus'>NORMAL </span>
 	</div>
-</div>/div>
+</div>
 
 <!-- me -->
 
@@ -565,7 +565,7 @@ body {
 document.addEventListener("DOMContentLoaded", function() {
 
 	const doseRate = document.getElementById("doseRate");
-	const radiationFill = document.getElementbyId("radiationFill");
+	const radiationFill = document.getElementById("radiationFill");
 	const radiationStatus = document.getElementById("radiationStatus");		
 	let radiation = 0.313 
 		
@@ -575,7 +575,7 @@ document.addEventListener("DOMContentLoaded", function() {
 		const fluctuation = (Math.random()-0.5) *0.015;
 		const displayedValue = Math.max(0,radiation+fluctuation);
 			
-		radiationValue.textContent = displayedValue.toFixed (3);
+		doseRate.textContent = displayedValue.toFixed (3);
 		const fillWidth = Math.min((displayedValue / 5) * 100, 100);
 		radiationFill.style.width = fillWidth + "%";
 			
