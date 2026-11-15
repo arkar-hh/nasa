@@ -1048,7 +1048,11 @@ document.addEventListener("DOMContentLoaded", function() {
     shelterButton.addEventListener("click", function() {
 
         checkButton.classList.add("hidden");
+        returnButton.classList.add("hidden");
         shelterButton.classList.add("hidden");
+
+        clearTimeout(checkTimer);
+        clearTimeout(returnTimer);
 
         sceneFade.classList.add("active");
 
