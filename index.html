@@ -525,13 +525,13 @@ document.addEventListener("DOMContentLoaded", function() {
 
     // hooking mission progress to shrinking earth
 
-    const totalDistance = 384400;
+    const totalDistance = 225000000;
     let travelled = 1000;
 
     function updateMission() {
 
         const remaining = totalDistance - travelled;
-        const progress = (travelled / totalDistance) * 100;
+        const progress = (travelled / totalDistance) * 100; //percent travelled
 
         document.getElementById("distance").textContent =
             Math.round(travelled).toLocaleString();
@@ -546,8 +546,8 @@ document.addEventListener("DOMContentLoaded", function() {
             progress + "%";
 
         const scale = Math.max(
-            0.05,
-            1 - (progress / 100) * 0.95
+            1.25,
+            1 - (progress / 100) * 900
         );
 
         earth.style.transform =
@@ -559,7 +559,7 @@ document.addEventListener("DOMContentLoaded", function() {
 
     setInterval(function() {
 
-        travelled += 600;
+        travelled += 600000;
 
         if (travelled >= totalDistance) {
             travelled = totalDistance;
