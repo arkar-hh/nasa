@@ -332,10 +332,17 @@ body:has(.room.turning) .begin-hit {
     background: #087dff;
 }
 
+#checkButton,
+#returnButton {
+    top: 50%;
+    bottom: auto;
+    transform: translate(-50%, -50%);
+}
+
 #returnButton {
     left: auto;
-    right: 10%;
-    transform: translateX(50%);
+    right: 2%;
+    transform: translateY(-50%);
 }
 
 
@@ -551,7 +558,8 @@ body:has(.room.turning) .begin-hit {
 /* Shelter button */
 
 #shelterButton {
-    bottom: 850px;
+    top: 150px;
+    bottom: auto;
     left: 50%;
     transform: translateX(-50%);
 }
@@ -951,6 +959,7 @@ document.addEventListener("DOMContentLoaded", function() {
 
     let atMedicalStation = false;
     let missionStarted = false;
+    let viewTransitioning = false;
 
     let beginTimer = null;
     let checkTimer = null;
@@ -998,7 +1007,9 @@ document.addEventListener("DOMContentLoaded", function() {
     checkButton.addEventListener("click", function() {
         if (atMedicalStation) return;
 
+        freezeEarthScale();
         atMedicalStation = true;
+        viewTransitioning = true;
 
         clearTimeout(beginTimer);
 
@@ -1017,7 +1028,9 @@ document.addEventListener("DOMContentLoaded", function() {
 
         if (!atMedicalStation) return;
 
+        freezeEarthScale();
         atMedicalStation = false;
+        viewTransitioning = true;
 
         room.classList.remove("turning");
 
@@ -1027,6 +1040,20 @@ document.addEventListener("DOMContentLoaded", function() {
             checkButton.classList.remove("hidden");
         }, 2500);
     });
+
+    room.addEventListener("transitionend", function(event) {
+        if (event.target !== room || event.propertyName !== "transform") return;
+
+        earth.style.transition = "";
+        viewTransitioning = false;
+        if (!atMedicalStation) updateEarthScale();
+    });
+
+    function freezeEarthScale() {
+        const currentTransform = getComputedStyle(earth).transform;
+        earth.style.transition = "none";
+        earth.style.transform = currentTransform;
+    }
 
     // ---------- sample measurement readings ----------
 
@@ -1190,14 +1217,16 @@ document.addEventListener("DOMContentLoaded", function() {
         document.getElementById("progressFill").style.width =
             progress + "%";
 
-        const scale = Math.max(
-            0.05,
-            1 - (progress / 100) * 0.95
-        );
+        if (!viewTransitioning) updateEarthScale();
+
+    }
+
+    function updateEarthScale() {
+        const progress = (travelled / totalDistance) * 100;
+        const scale = Math.max(0.05, 1 - (progress / 100) * 0.95);
 
         earth.style.transform =
             "translate(100px, 100px) scale(" + scale + ")";
-
     }
 
     updateMission();
