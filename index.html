@@ -756,6 +756,7 @@ body {
 </div>
 
 <!-- END --> 
+/
 <script>
 document.addEventListener("DOMContentLoaded", function() {
 
@@ -763,34 +764,89 @@ document.addEventListener("DOMContentLoaded", function() {
 	const radiationFill = document.getElementById("radiationFill");
 	const radiationStatus = document.getElementById("radiationStatus");		
 	let radiation = 0.313 
+	let stormRadiation = false
+	let stormStartRadiation = null;
+	let shelterStartRadiation = 0.313;
+	const totalDistance = 225000000;
+	let travelled = 1000;
+
+	let shelterTriggered = false;
+	let shelterEntered = null;
 		
-	function updateDosimeter(){
-		radiation += Math.random() *0.015;
-		radiation -= Math.random()* 0.015;
-		const fluctuation = (Math.random()-0.5) *0.015;
-		const displayedValue = Math.max(0,radiation+fluctuation);
-			
-		doseRate.textContent = displayedValue.toFixed (3);
-		const fillWidth = Math.min((displayedValue / 5) * 100, 100);
-		radiationFill.style.width = fillWidth + "%";
-			
-		if (displayedValue < 0.7){
-			radiationStatus.textContent="NORMAL";
-		} else if (displayedValue < 1.5){
-			radiationStatus.textContent="ELEVATED";
-		} else{
-			radiationStatus.textContent = "HIGH";
-		}
-	}
-	setInterval(updateDosimeter, 3000);
-		
+	function updateDosimeter() {
+	    const progress = (travelled / totalDistance) * 100;
+	    //fluctuations !
+	    if (stormStartRadiation === null && shelterEntered === null) {
+   			 radiation = 0.313 + (Math.random() - 0.5) * 0.03;
+			}
+	
+	    // Remember the reading when the storm begins at 60%
+	    if (progress >= 60 &&
+	        stormStartRadiation === null &&
+	        shelterEntered === null) {
+	        stormStartRadiation = radiation;
+	        stormRadiation = true;
+	    }
+	
+	    // Gradually increase to1.6 by 70%
+	    if (shelterEntered === null && stormStartRadiation !== null) {
+	        const stormProgress = Math.min(
+	            Math.max((progress - 60) / 10, 0),
+	            1
+	        );
+	
+	        radiation = stormStartRadiation +
+	            (1.6 - stormStartRadiation) * stormProgress;
+	    }
+	
+	    //to 0.313 over 15 seconds in the shelter
+	    if (shelterEntered !== null) {
+	        const elapsed = Math.min(
+	            (Date.now() - shelterEntered) / 30000,
+	            1
+	        );
+	
+	        radiation = shelterStartRadiation +
+	            (0.313 - shelterStartRadiation) * elapsed;
+	
+	        if (elapsed >= 1) {
+	            radiation = 0.313;
+	            stormRadiation = false;
+	        }
+	    }
+	
+	    doseRate.textContent = radiation.toFixed(3);
+	
+	    const fillWidth = Math.min((radiation / 5) * 100, 100);
+	    radiationFill.style.width = fillWidth + "%";
+	
+	    if (radiation < 0.7) {
+	        radiationStatus.textContent = "NORMAL";
+	    } else if (radiation < 1.5) {
+	        radiationStatus.textContent = "ELEVATED";
+	    } else {
+	        radiationStatus.textContent = "HIGH";
+	    }
+}
 
     const room = document.getElementById("room");
     const checkButton = document.getElementById("checkButton");
     const returnButton = document.getElementById("returnButton");
-    const monitorButton = document.getElementById("measurements-1");
-    const beginButton = document.getElementById("beginButton");
+    const monitorButton = document.getElementById("monitorButton");
+    const beginButton = document.getElementById("beginButton")
     const earth = document.getElementById("earth");
+    const shelterButton = document.getElementById("shelterButton");
+
+		const sceneFade = document.getElementById("sceneFade");
+		const stormShelter = document.getElementById("stormShelter");
+
+    let atMedicalStation = false;
+    let missionStarted = false;
+
+    let beginTimer = null;
+    let checkTimer = null;
+    let returnTimer = null;
+	
     const cstSurvey = document.getElementById("cst-survey");
     const testButton = document.getElementById("cst-button");
 
@@ -802,21 +858,6 @@ document.addEventListener("DOMContentLoaded", function() {
         ["UNCOMFORTABLE", "COMFORTABLE"],
         ["APPREHENSIVE", "RELAXED"]
     ]
-    const shelterButton = document.getElementById("shelterButton");
-
-		const sceneFade = document.getElementById("sceneFade");
-		const stormShelter = document.getElementById("stormShelter");
-		
-		let shelterTriggered = false;
-
-    let atMedicalStation = false;
-    let missionStarted = false;
-
-    let beginTimer = null;
-    let checkTimer = null;
-    let returnTimer = null;
-
-    
     //playing my audio yay
 
     testButton.addEventListener("click", function() {
@@ -934,26 +975,56 @@ document.addEventListener("DOMContentLoaded", function() {
 
     // hooking mission progress to shrinking earth
 
-    const totalDistance = 225000000;
-    let travelled = 1000;
     // Enter the solar storm shelter
 
-		shelterButton.addEventListener("click", function() {
+	shelterButton.addEventListener("click", function() {
 		
-		    shelterButton.classList.add("hidden");
+	    shelterButton.classList.add("hidden");
+		sceneFade.classList.add("active");
 		
-		    sceneFade.classList.add("active");
+		setTimeout(function() {
 		
-		    setTimeout(function() {
+		    stormShelter.classList.add("active");
 		
-		        stormShelter.classList.add("active");
-		
-		        sceneFade.classList.remove("active");
-		
-		    }, 1200);
-		
-		});
+		    sceneFade.classList.remove("active");
+		        
+		     //will wait about 15 seconds now
+			shelterStartRadiation = radiation;
+			shelterEntered = Date.now();
+			const messages = ["You are now inside the storm shelter.",
+			"This room is made of flexible polyethylene bags filled with water and hydrogen to shield you from particle radiation from solar storms.",
+			"Allow your dosimeter to return to safe levels."
+			];
+			let messageIndex = 0;
+			
+			assistant.classList.remove("hidden");
+				function showMessage() {
+					text.textContent = "";
+					let character = 0;
+				
+					const typing = setInterval(function() {
+						if (character < messages[messageIndex].length) {
+							text.textContent += messages[messageIndex].charAt(character);
+							character++;
+						} else {
+							clearInterval(typing);
+							messageIndex++;
+				
+							if (messageIndex < messages.length) {
+								setTimeout(showMessage, 2000);
+							}
+						}
+					}, 60);
+				}
+				
+				showMessage();
 
+			
+			updateDosimeter();
+
+		}, 1200);
+
+	});
     function updateMission() {
 
         const remaining = totalDistance - travelled;
