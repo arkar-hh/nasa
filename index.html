@@ -252,9 +252,8 @@ body:has(.room.turning) .begin-hit {
 }
 
 .monitor-row {
-    position: absolute;
-    top: 6%;
-    left: -12%;
+    position: relative;
+    margin: 6vh 0 0 -12%;
     width: 96%;
     display: flex;
     gap: 20px;
@@ -291,6 +290,30 @@ body:has(.room.turning) .begin-hit {
     display: block;
     width: 100%;
     height: auto;
+}
+
+.station-note {
+    width: 96%;
+    min-height: 100px;
+    margin: 20px 0 0 -12%;
+    padding: 18px 20px;
+    border: 2px solid #087dff;
+    border-radius: 12px;
+    background: rgba(0, 15, 35, 0.95);
+    box-shadow: 0 0 15px #087dff,
+                inset 0 0 25px rgba(0, 120, 255, 0.2);
+}
+
+.station-note h2 {
+    margin: 0 0 10px;
+    color: #55dfff;
+    font-size: 17px;
+    letter-spacing: 3px;
+}
+
+.station-note p {
+    margin: 0;
+    line-height: 1.5;
 }
 
 .reading {
@@ -773,7 +796,12 @@ body:has(.room.turning) .begin-hit {
                     <img class="graph-image" src="graph.png" alt="Stress data graph">
                 </div>
             </div>
-            
+
+            <section class="station-note">
+                <h2>MISSION NOTES</h2>
+                <p>Prolonged isolation can affect your wellbeing and have knock-on effects to other aspects of your health. Let's measure your stress levels using our Current Stress Test, measuring your cortisol levels with a saliva sample, and measuring your endocannabinoid levels with a blood test. Your readings should be in the healthy range shown on the right.</p>
+            </section>
+
             <div id="cst-survey">
                 <!-- build survey with javascript -->
             </div>
@@ -1017,7 +1045,7 @@ document.addEventListener("DOMContentLoaded", function() {
 
             if (travelled < totalDistance) {
 
-                travelled += 12000000;
+                travelled += 1000000;
 
                 if (travelled >= totalDistance) {
                     travelled = totalDistance;
