@@ -70,18 +70,13 @@ body {
     overflow: hidden;
     isolation: isolate;
     background: #020711;
+    background-image: url("earth.png");
+    background-repeat: no-repeat;
+    background-size: 101.74% 100%;
+    background-position: calc(50% + 100px) calc(50% + 100px);
+    transition: background-size 1s linear;
     box-shadow: 0 0 25px #168cff,
                 inset 0 0 25px #168cff;
-}
-
-.earth {
-    display: block;
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    border-radius: 50%;
-    transform: translate(100px, 100px) scale(1);
-    transition: transform 1s linear;
 }
 
 .window-label {
@@ -706,10 +701,7 @@ body:has(.room.turning) .begin-hit {
                 EARTH OBSERVATION WINDOW
             </div>
 
-            <div class="window">
-                <img class="earth" id="earth"
-                     src="earth.png" alt="Earth">
-            </div>
+            <div class="window" id="earth" role="img" aria-label="Earth seen through the observation window"></div>
             <button id="beginButton" class="begin-button" type="button" tabindex="-1" aria-hidden="true">
                 <span class="begin-cap">BEGIN<br>MISSION</span>
             </button>
@@ -959,7 +951,6 @@ document.addEventListener("DOMContentLoaded", function() {
 
     let atMedicalStation = false;
     let missionStarted = false;
-    let viewTransitioning = false;
 
     let beginTimer = null;
     let checkTimer = null;
@@ -1007,9 +998,7 @@ document.addEventListener("DOMContentLoaded", function() {
     checkButton.addEventListener("click", function() {
         if (atMedicalStation) return;
 
-        freezeEarthScale();
         atMedicalStation = true;
-        viewTransitioning = true;
 
         clearTimeout(beginTimer);
 
@@ -1028,9 +1017,7 @@ document.addEventListener("DOMContentLoaded", function() {
 
         if (!atMedicalStation) return;
 
-        freezeEarthScale();
         atMedicalStation = false;
-        viewTransitioning = true;
 
         room.classList.remove("turning");
 
@@ -1040,20 +1027,6 @@ document.addEventListener("DOMContentLoaded", function() {
             checkButton.classList.remove("hidden");
         }, 2500);
     });
-
-    room.addEventListener("transitionend", function(event) {
-        if (event.target !== room || event.propertyName !== "transform") return;
-
-        earth.style.transition = "";
-        viewTransitioning = false;
-        if (!atMedicalStation) updateEarthScale();
-    });
-
-    function freezeEarthScale() {
-        const currentTransform = getComputedStyle(earth).transform;
-        earth.style.transition = "none";
-        earth.style.transform = currentTransform;
-    }
 
     // ---------- sample measurement readings ----------
 
@@ -1217,7 +1190,7 @@ document.addEventListener("DOMContentLoaded", function() {
         document.getElementById("progressFill").style.width =
             progress + "%";
 
-        if (!viewTransitioning) updateEarthScale();
+        updateEarthScale();
 
     }
 
@@ -1225,8 +1198,8 @@ document.addEventListener("DOMContentLoaded", function() {
         const progress = (travelled / totalDistance) * 100;
         const scale = Math.max(0.05, 1 - (progress / 100) * 0.95);
 
-        earth.style.transform =
-            "translate(100px, 100px) scale(" + scale + ")";
+        earth.style.backgroundSize =
+            (scale * 101.74) + "% " + (scale * 100) + "%";
     }
 
     updateMission();
