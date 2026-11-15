@@ -646,7 +646,7 @@ body:has(.room.turning) .begin-hit {
 
 <!-- progressss -->
 
-<div class="mission-bar">
+<div class="mission-bar hidden" id="missionBar">
     <div class="mission-labels">
         <span>TRAVELLED: <span id="distance">1,000</span> km</span>
         <span id="progress">0.0%</span>
@@ -660,23 +660,23 @@ body:has(.room.turning) .begin-hit {
 
 <!-- dosimeter -->
 
-<div class = "dosimeter">
-	<div class = "dosimeter-heading">
-		<span> DOSIMETER </span>
-	</div>
-	
-	<div class="dosimeter-reading">
-		<span id = "doseRate">0.313</span>
-		<span class = "dosimeter-unit">&mu;Gy/min</span>
-	</div>
-	
-	<div class = "dosimeter-label">DOSE RATE </div>
-	<div class = "dosimeter-track">
-		<div id= "radiationFill"></div>
-	</div>
-	<div class = "dosimeter-footer">
-		<span id='radiationStatus'>NORMAL </span>
-	</div>
+<div class="dosimeter hidden" id="dosimeter">
+    <div class="dosimeter-heading">
+        <span> DOSIMETER </span>
+    </div>
+
+    <div class="dosimeter-reading">
+        <span id="doseRate">0.313</span>
+        <span class="dosimeter-unit">&mu;Gy/min</span>
+    </div>
+
+    <div class="dosimeter-label">DOSE RATE </div>
+    <div class="dosimeter-track">
+        <div id="radiationFill"></div>
+    </div>
+    <div class="dosimeter-footer">
+        <span id="radiationStatus">NORMAL </span>
+    </div>
 </div>
 
 <!-- me -->
@@ -933,9 +933,11 @@ document.addEventListener("DOMContentLoaded", function() {
     const shelterButton = document.getElementById("shelterButton");
     const sceneFade = document.getElementById("sceneFade");
     const stormShelter = document.getElementById("stormShelter");
+    const missionBar = document.getElementById("missionBar");
+    const dosimeter = document.getElementById("dosimeter");
 
     // voice assistant elements (shared by begin + shelter)
-    const shelterAudio = document.getElementById("shelterAudio")
+    const shelterAudio = document.getElementById("shelterAudio");
     const audio = document.getElementById("welcomeAudio");
     const assistant = document.getElementById("voiceAssistant");
     const text = document.getElementById("spokenText");
@@ -951,6 +953,9 @@ document.addEventListener("DOMContentLoaded", function() {
 
     let atMedicalStation = false;
     let missionStarted = false;
+    let missionRunning = false;
+    let missionTimer = null;
+    let doseTimer = null;
 
     let beginTimer = null;
     let checkTimer = null;
@@ -967,31 +972,87 @@ document.addEventListener("DOMContentLoaded", function() {
     });
 
     beginHit.addEventListener("click", function() {
-        if (missionStarted) return;
-        missionStarted = true;
 
+        if (missionStarted) return;
+
+        missionStarted = true;
         beginButton.classList.add("pressed");
         beginHit.disabled = true;
 
-        function playAudio() {
-            const message = "Welcome to the ISS. I will be your assistant monitoring your health here from Earth as you voyage to Mars to ensure your safe journey home.";
+        const message = "Welcome to the ISS. I will be your assistant monitoring your health here from Earth as you voyage to Mars to ensure your safe journey home.";
 
-            audio.play();
-            assistant.classList.remove("hidden");
-            text.textContent = "";
-            audio.currentTime = 0;
-            let character = 0;
-            const typing = setInterval(function() {
-                if (character < message.length) {
-                    text.textContent += message.charAt(character);
-                    character++;
-                } else {
-                    clearInterval(typing);
-                }
-            }, 60);
-        }
-        playAudio();
+        assistant.classList.remove("hidden");
+        text.textContent = "";
+
+        // Start the audio
+        audio.currentTime = 0;
+
+        audio.play().catch(function(error) {
+            console.log("Welcome audio error:", error);
+
+            // Continue if the audio cannot play
+            beginMission();
+        });
+
+        // Type the welcome message
+        let character = 0;
+
+        const typing = setInterval(function() {
+
+            if (character < message.length) {
+                text.textContent += message.charAt(character);
+                character++;
+            } else {
+                clearInterval(typing);
+            }
+
+        }, 60);
+
     });
+
+    // Wait until the welcome audio finishes
+    audio.addEventListener("ended", function() {
+        beginMission();
+    });
+
+    function beginMission() {
+
+        if (missionRunning) return;
+
+        missionRunning = true;
+
+        // Reveal the mission displays
+        missionBar.classList.remove("hidden");
+        dosimeter.classList.remove("hidden");
+
+        // Start mission progress
+        updateMission();
+
+        missionTimer = setInterval(function() {
+
+            if (travelled < totalDistance) {
+
+                travelled += 12000000;
+
+                if (travelled >= totalDistance) {
+                    travelled = totalDistance;
+                }
+
+                updateMission();
+            }
+
+            if (travelled >= totalDistance) {
+                clearInterval(missionTimer);
+            }
+
+        }, 1000);
+
+        // Start dosimeter updates
+        updateDosimeter();
+
+        doseTimer = setInterval(updateDosimeter, 3000);
+
+    }
 
     // ---------- turning left ----------
 
@@ -1105,10 +1166,9 @@ document.addEventListener("DOMContentLoaded", function() {
     // ---------- enter the solar storm shelter ----------
 
     shelterButton.addEventListener("click", function() {
-    		shelterAudio.pause();
-    		shelterAudio.currentTime=0;
-    		shelterAudio.play();
-    		
+        shelterAudio.pause();
+        shelterAudio.currentTime = 0;
+        shelterAudio.play();
 
         checkButton.classList.add("hidden");
         returnButton.classList.add("hidden");
@@ -1202,22 +1262,6 @@ document.addEventListener("DOMContentLoaded", function() {
             (scale * 101.74) + "% " + (scale * 100) + "%";
     }
 
-    updateMission();
-
-    setInterval(function() {
-
-        travelled += 12000000;
-
-        if (travelled >= totalDistance) {
-            travelled = totalDistance;
-        }
-
-        updateMission();
-
-    }, 1000);
-
-    setInterval(updateDosimeter, 3000);
-
     // ---------- build CST survey ----------
 
     const wrapper = document.createElement("div");
@@ -1302,8 +1346,8 @@ document.addEventListener("DOMContentLoaded", function() {
 <audio id="welcomeAudio" preload="auto">
     <source src="begin.wav" type="audio/wav">
 </audio>
-<audio id= "shelterAudio" preload="auto">
-	<source src="shelter.wav" type="audio/wav">
+<audio id="shelterAudio" preload="auto">
+    <source src="shelter.wav" type="audio/wav">
 </audio>
 
 </body>
