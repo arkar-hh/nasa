@@ -331,6 +331,81 @@ body {
     border-top: 1px solid #28baff;
     transform: rotate(45deg);
 }
+
+/* dosimeter rahh */
+
+.dosimeter {
+    position: fixed;
+    top: 80px;
+    left: 15px;
+    z-index: 15;
+    width: 120px;
+    padding: 9px;
+    border: 1px solid #168cff;
+    border-radius: 5px;
+    background: rgba(0, 12, 28, 0.94);
+    box-shadow: 0 0 12px rgba(0, 130, 255, 0.4);
+    color: #8beaff;
+    font-family: monospace;
+}
+
+.dosimeter-heading {
+    display: flex;
+    justify-content: space-between;
+    font-size: 7px;
+    letter-spacing: 1px;
+}
+
+.dosimeter-status {
+    color: #65ffcf;
+}
+
+.dosimeter-reading {
+    margin-top: 4px;
+    font-size: 17px;
+    font-weight: bold;
+    color: #65ffcf;
+}
+
+.dosimeter-unit {
+    font-size: 7px;
+    color: #8beaff;
+}
+
+.dosimeter-label {
+    margin-top: 2px;
+    font-size: 5px;
+    letter-spacing: 1px;
+    color: #779bb7;
+}
+
+.dosimeter-track {
+    height: 5px;
+    margin-top: 2px;
+    background: #142d45;
+    border-radius: 5px;
+    overflow: hidden;
+}
+
+#radiationFill {
+    width: 5%;
+    height: 100%;
+    background: #65ffcf;
+    box-shadow: 0 0 8px #65ffcf;
+    transition: width 0.5s ease;
+}
+
+.dosimeter-footer {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 3px;
+    font-size: 8px;
+    letter-spacing: 1px;
+}
+
+#radiationStatus {
+    color: #65ffcf;
+}
 </style>
 
 </head>
@@ -343,13 +418,34 @@ body {
     <div class="mission-labels">
         <span>TRAVELLED: <span id="distance">1,000</span> km</span>
         <span id="progress">0.3%</span>
-        <span>REMAINING: <span id="remaining">383,400</span> km</span>
+        <span>REMAINING: <span id="remaining">225,000000</span> km</span>
     </div>
 
     <div class="progress-track">
         <div class="progress-fill" id="progressFill"></div>
     </div>
 </div>
+
+<!-- dosimeter -->
+
+<div class = "dosimeter">
+	<div class = "dosimeter-heading">
+		<span> DOSIMETER </span>
+	</div>
+	
+	<div class="dosimeter-reading">
+		<span id = "doseRate">0.313</span>
+		<span class = "dosimeter-unit">&mu;Gy/min</span>
+	</div>
+	
+	<div class = "dosimeter-label">DOSE RATE </div>
+	<div class = "dosimeter-track">
+		<div id= "radiationFill"></div>
+	</div>
+	<div class = "dosimeter-footer">
+		<span id='radiationStatus'>NORMAL </span>
+	</div>
+</div>/div>
 
 <!-- me -->
 
