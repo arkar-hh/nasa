@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -640,7 +639,7 @@ body:has(.room.turning) .begin-hit {
 <div class="mission-bar">
     <div class="mission-labels">
         <span>TRAVELLED: <span id="distance">1,000</span> km</span>
-        <span id="progress">70%</span>
+        <span id="progress">0.0%</span>
         <span>REMAINING: <span id="remaining">225,000000</span> km</span>
     </div>
 
@@ -826,31 +825,81 @@ body:has(.room.turning) .begin-hit {
 <script>
 document.addEventListener("DOMContentLoaded", function() {
 
-	const doseRate = document.getElementById("doseRate");
-	const radiationFill = document.getElementById("radiationFill");
-	const radiationStatus = document.getElementById("radiationStatus");		
-	let radiation = 0.313 
-		
-	function updateDosimeter(){
-		radiation += Math.random() *0.015;
-		radiation -= Math.random()* 0.015;
-		const fluctuation = (Math.random()-0.5) *0.015;
-		const displayedValue = Math.max(0,radiation+fluctuation);
-			
-		doseRate.textContent = displayedValue.toFixed (3);
-		const fillWidth = Math.min((displayedValue / 5) * 100, 100);
-		radiationFill.style.width = fillWidth + "%";
-			
-		if (displayedValue < 0.7){
-			radiationStatus.textContent="NORMAL";
-		} else if (displayedValue < 1.5){
-			radiationStatus.textContent="ELEVATED";
-		} else{
-			radiationStatus.textContent = "HIGH";
-		}
-	}
-	setInterval(updateDosimeter, 3000);
-		
+    // ---------- shared state ----------
+
+    const doseRate = document.getElementById("doseRate");
+    const radiationFill = document.getElementById("radiationFill");
+    const radiationStatus = document.getElementById("radiationStatus");
+    let radiation = 0.313;
+    let stormRadiation = false;
+    let stormStartRadiation = null;
+    let shelterStartRadiation = 0.313;
+    const totalDistance = 225000000;
+    let travelled = 1000;
+
+    let shelterTriggered = false;
+    let shelterEntered = null;
+
+    // ---------- dosimeter (with solar storm) ----------
+
+    function updateDosimeter() {
+        const progress = (travelled / totalDistance) * 100;
+
+        // normal fluctuations
+        if (stormStartRadiation === null && shelterEntered === null) {
+            radiation = 0.313 + (Math.random() - 0.5) * 0.03;
+        }
+
+        // remember the reading when the storm begins at 60%
+        if (progress >= 60 &&
+            stormStartRadiation === null &&
+            shelterEntered === null) {
+            stormStartRadiation = radiation;
+            stormRadiation = true;
+        }
+
+        // gradually increase to 1.6 by 70%
+        if (shelterEntered === null && stormStartRadiation !== null) {
+            const stormProgress = Math.min(
+                Math.max((progress - 60) / 10, 0),
+                1
+            );
+
+            radiation = stormStartRadiation +
+                (1.6 - stormStartRadiation) * stormProgress;
+        }
+
+        // back to 0.313 over 30 seconds in the shelter
+        if (shelterEntered !== null) {
+            const elapsed = Math.min(
+                (Date.now() - shelterEntered) / 30000,
+                1
+            );
+
+            radiation = shelterStartRadiation +
+                (0.313 - shelterStartRadiation) * elapsed;
+
+            if (elapsed >= 1) {
+                radiation = 0.313;
+                stormRadiation = false;
+            }
+        }
+
+        doseRate.textContent = radiation.toFixed(3);
+
+        const fillWidth = Math.min((radiation / 5) * 100, 100);
+        radiationFill.style.width = fillWidth + "%";
+
+        if (radiation < 0.7) {
+            radiationStatus.textContent = "NORMAL";
+        } else if (radiation < 1.5) {
+            radiationStatus.textContent = "ELEVATED";
+        } else {
+            radiationStatus.textContent = "HIGH";
+        }
+    }
+
+    // ---------- elements ----------
 
     const room = document.getElementById("room");
     const checkButton = document.getElementById("checkButton");
@@ -861,7 +910,14 @@ document.addEventListener("DOMContentLoaded", function() {
     const cstSurvey = document.getElementById("cst-survey");
     const testButton = document.getElementById("cst-button");
     const beginHit = document.getElementById("beginHit");
+    const shelterButton = document.getElementById("shelterButton");
+    const sceneFade = document.getElementById("sceneFade");
+    const stormShelter = document.getElementById("stormShelter");
 
+    // voice assistant elements (shared by begin + shelter)
+    const audio = document.getElementById("welcomeAudio");
+    const assistant = document.getElementById("voiceAssistant");
+    const text = document.getElementById("spokenText");
 
     const cstQuestions = [
         ["TENSE", "CALM"],
@@ -870,13 +926,7 @@ document.addEventListener("DOMContentLoaded", function() {
         ["AGITATED", "UNWOUND"],
         ["UNCOMFORTABLE", "COMFORTABLE"],
         ["APPREHENSIVE", "RELAXED"]
-    ]
-    const shelterButton = document.getElementById("shelterButton");
-
-	const sceneFade = document.getElementById("sceneFade");
-	const stormShelter = document.getElementById("stormShelter");
-		
-	let shelterTriggered = false;
+    ];
 
     let atMedicalStation = false;
     let missionStarted = false;
@@ -885,69 +935,62 @@ document.addEventListener("DOMContentLoaded", function() {
     let checkTimer = null;
     let returnTimer = null;
 
-
     testButton.addEventListener("click", function() {
-        wrapper.classList.remove("hidden")
+        wrapper.classList.remove("hidden");
     });
-    
-    
-    //playing my audio yay
+
+    // ---------- begin mission + welcome audio ----------
 
     beginHit.addEventListener("pointerdown", function() {
         beginButton.classList.add("pressed");
     });
-		    
+
     beginHit.addEventListener("click", function() {
         if (missionStarted) return;
         missionStarted = true;
 
         beginButton.classList.add("pressed");
         beginHit.disabled = true;
-    
-        var audio = document.getElementById("welcomeAudio");
-        var assistant = document.getElementById("voiceAssistant");
-        var text = document.getElementById("spokenText")
-        function playAudio(){
+
+        function playAudio() {
             const message = "Welcome to the ISS. I will be your assistant monitoring your health here from Earth as you voyage to Mars to ensure your safe journey home.";
-            const messsage2 = "Let's check your monitors.";
+
             audio.play();
             assistant.classList.remove("hidden");
             text.textContent = "";
             audio.currentTime = 0;
             let character = 0;
             const typing = setInterval(function() {
-                if (character < message.length){
+                if (character < message.length) {
                     text.textContent += message.charAt(character);
                     character++;
-                    } else{
-                        clearInterval(typing);
-                    }
+                } else {
+                    clearInterval(typing);
+                }
             }, 60);
         }
         playAudio();
-    
     });
-    
-    // turning left
+
+    // ---------- turning left ----------
 
     checkButton.addEventListener("click", function() {
         if (atMedicalStation) return;
 
         atMedicalStation = true;
 
-        clearTimeout(beginTimer)
+        clearTimeout(beginTimer);
 
         room.classList.add("turning");
 
         checkButton.classList.add("hidden");
 
         returnTimer = setTimeout(function() {
-                returnButton.classList.remove("hidden");
-            }, 2000)
-
+            returnButton.classList.remove("hidden");
+        }, 2000);
     });
 
-    // turnign to window
+    // ---------- turning to window ----------
 
     returnButton.addEventListener("click", function() {
 
@@ -960,17 +1003,17 @@ document.addEventListener("DOMContentLoaded", function() {
         returnButton.classList.add("hidden");
 
         checkTimer = setTimeout(function() {
-                checkButton.classList.remove("hidden");
-            }, 2000)
+            checkButton.classList.remove("hidden");
+        }, 2000);
     });
 
-    // load reading
+    // ---------- load readings ----------
 
     monitorButton.addEventListener("click", function() {
 
         returnTimer = setTimeout(function() {
-                returnButton.classList.remove("hidden");
-            }, 2000)
+            returnButton.classList.remove("hidden");
+        }, 2000);
 
         const readings = [
             ["heart", "72 BPM"],
@@ -1000,40 +1043,73 @@ document.addEventListener("DOMContentLoaded", function() {
 
     });
 
-    // hooking mission progress to shrinking earth
+    // ---------- enter the solar storm shelter ----------
 
-    const totalDistance = 225000000;
-    let travelled = 1000;
-    // Enter the solar storm shelter
+    shelterButton.addEventListener("click", function() {
 
-		shelterButton.addEventListener("click", function() {
-            checkButton.classList.add("hidden")
+        checkButton.classList.add("hidden");
+        shelterButton.classList.add("hidden");
 
-		
-		    shelterButton.classList.add("hidden");
-		
-		    sceneFade.classList.add("active");
-		
-		    setTimeout(function() {
-		
-		        stormShelter.classList.add("active");
-		
-		        sceneFade.classList.remove("active");
-		
-		    }, 1200);
-		
-		});
+        sceneFade.classList.add("active");
+
+        setTimeout(function() {
+
+            stormShelter.classList.add("active");
+
+            sceneFade.classList.remove("active");
+
+            // start the dosimeter's return to normal
+            shelterStartRadiation = radiation;
+            shelterEntered = Date.now();
+
+            const messages = [
+                "You are now inside the storm shelter.",
+                "This room is made of flexible polyethylene bags filled with water and hydrogen to shield you from particle radiation from solar storms.",
+                "Allow your dosimeter to return to safe levels."
+            ];
+            let messageIndex = 0;
+
+            assistant.classList.remove("hidden");
+
+            function showMessage() {
+                text.textContent = "";
+                let character = 0;
+
+                const typing = setInterval(function() {
+                    if (character < messages[messageIndex].length) {
+                        text.textContent += messages[messageIndex].charAt(character);
+                        character++;
+                    } else {
+                        clearInterval(typing);
+                        messageIndex++;
+
+                        if (messageIndex < messages.length) {
+                            setTimeout(showMessage, 2000);
+                        }
+                    }
+                }, 60);
+            }
+
+            showMessage();
+
+            updateDosimeter();
+
+        }, 1200);
+
+    });
+
+    // ---------- mission progress / shrinking earth ----------
 
     function updateMission() {
 
         const remaining = totalDistance - travelled;
-        const progress = (travelled / totalDistance) * 100; //percent travelled
-        // Reveal shelter button at 70% mission progress
+        const progress = (travelled / totalDistance) * 100; // percent travelled
 
-				if (progress >= 0.1 && !shelterTriggered) {
-				    shelterTriggered = true;
-				    shelterButton.classList.remove("hidden");
-				}
+        // reveal shelter button at 70% mission progress
+        if (progress >= 70 && !shelterTriggered) {
+            shelterTriggered = true;
+            shelterButton.classList.remove("hidden");
+        }
 
         document.getElementById("distance").textContent =
             Math.round(travelled).toLocaleString();
@@ -1061,7 +1137,7 @@ document.addEventListener("DOMContentLoaded", function() {
 
     setInterval(function() {
 
-        travelled += 600000;
+        travelled += 12000000;
 
         if (travelled >= totalDistance) {
             travelled = totalDistance;
@@ -1071,7 +1147,10 @@ document.addEventListener("DOMContentLoaded", function() {
 
     }, 1000);
 
-    // Build CST Survey
+    setInterval(updateDosimeter, 3000);
+
+    // ---------- build CST survey ----------
+
     const wrapper = document.createElement("div");
     wrapper.className = "survey hidden";
 
@@ -1080,12 +1159,12 @@ document.addEventListener("DOMContentLoaded", function() {
         row.className = "survey-q";
 
         const left_label = document.createElement("label");
-        left_label.className = "label-left"
+        left_label.className = "label-left";
         left_label.textContent = spectrum[0];
         row.appendChild(left_label);
 
         const scale = document.createElement("div");
-        scale.className = "survey-scale"
+        scale.className = "survey-scale";
 
         for (let i = 1; i <= 6; i++) {
             const input_button = document.createElement("input");
@@ -1104,7 +1183,7 @@ document.addEventListener("DOMContentLoaded", function() {
 
         row.appendChild(right_label);
 
-        wrapper.appendChild(row)
+        wrapper.appendChild(row);
 
     });
 
