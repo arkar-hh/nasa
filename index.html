@@ -152,16 +152,18 @@ body {
     position: absolute;
     inset: 0;
     transform: scale(0.55);
-    transform-origin: center;
+    transform-origin: center top;
 }
 
 .wall-title { /* this is the 'earth observation window text */
     position: absolute;
-    top: 15%;
-    left: 8%;
+    top: 2%;
+    left: 0;
+    width: 100%;
     color: #65dfff;
     letter-spacing: 5px;
     font-size: 15px;
+    text-align: center;
 }
 
 /* black base */
@@ -251,10 +253,9 @@ body:has(.room.turning) .begin-hit {
 
 .monitor-row {
     position: absolute;
-    top: 25%;
-    left: 5%;
-    width: 90%;
-    height: 58%;
+    top: 6%;
+    left: -12%;
+    width: 96%;
     display: flex;
     gap: 20px;
 }
@@ -271,11 +272,25 @@ body:has(.room.turning) .begin-hit {
         overflow-y: auto;
 }
 
+.stress-window {
+    flex: 0.8;
+}
+
+.graph-window {
+    flex: 1.2;
+}
+
 .monitor-window h2 {
     color: #55dfff;
     font-size: 17px;
     letter-spacing: 3px;
     margin-top: 0;
+}
+
+.graph-image {
+    display: block;
+    width: 100%;
+    height: auto;
 }
 
 .reading {
@@ -716,40 +731,7 @@ body:has(.room.turning) .begin-hit {
 
 
             <div class="monitor-row">
-                <div class="monitor-window">
-                    <h2>CREW HEALTH MONITOR</h2>
-
-                    <div class="reading">
-                        <span>HEART RATE (BPM)</span>
-                        <span id="heart">--</span>
-                    </div>
-
-                    <div class="reading">
-                        <span>OXYGEN (%)</span>
-                        <span id="oxygen">--</span>
-                    </div>
-
-                    <div class="reading">
-                        <span>TEMPERATURE (°C)</span>
-                        <span id="temperature">--</span>
-                    </div>
-
-                    <div class="reading">
-                        <span>RESPIRATION (/MIN)</span>
-                        <span id="respiration">--</span>
-                    </div>
-
-                    <div class="reading">
-                        <span>BLOOD PRESSURE (MMHG)</span>
-                        <span id="pressure">--</span>
-                    </div>
-
-                    <button class="monitor-button" id="measurements-1" type="button">
-                        TAKE MEASUREMENTS
-                    </button>
-                </div>
-
-                <div class="monitor-window">
+                <div class="monitor-window stress-window">
                     <div class="stress-test">
                         <h2>STRESS</h2>
 
@@ -785,6 +767,10 @@ body:has(.room.turning) .begin-hit {
                             TAKE MEASUREMENTS
                         </button>
                     </div>
+                </div>
+                <div class="monitor-window graph-window">
+                    <h2>STRESS GRAPH</h2>
+                    <img class="graph-image" src="graph.png" alt="Stress data graph">
                 </div>
             </div>
             
@@ -923,7 +909,6 @@ document.addEventListener("DOMContentLoaded", function() {
     const room = document.getElementById("room");
     const checkButton = document.getElementById("checkButton");
     const returnButton = document.getElementById("returnButton");
-    const vitalMeasurementsButton = document.getElementById("measurements-1");
     const stressMeasurementsButton = document.getElementById("measurements-2");
     const beginButton = document.getElementById("beginButton");
     const earth = document.getElementById("earth");
@@ -1132,23 +1117,6 @@ document.addEventListener("DOMContentLoaded", function() {
             }, (index + 1) * 700);
         });
     }
-
-    vitalMeasurementsButton.addEventListener("click", function() {
-        // Illustrative resting-adult means and standard deviations.
-        const readings = [
-            ["heart", function() { return formatNormal(72, 8, 40, 180, 0) + " BPM"; }],
-            ["oxygen", function() { return formatNormal(98, 0.7, 85, 100, 1) + "%"; }],
-            ["temperature", function() { return formatNormal(36.8, 0.3, 34, 42, 1) + " °C"; }],
-            ["respiration", function() { return formatNormal(16, 2, 5, 40, 0) + " / MIN"; }],
-            ["pressure", function() {
-                const systolic = formatNormal(118, 10, 70, 200, 0);
-                const diastolic = formatNormal(76, 8, 40, 130, 0);
-                return systolic + "/" + diastolic + " mmHg";
-            }]
-        ];
-
-        takeMeasurements(vitalMeasurementsButton, readings);
-    });
 
     stressMeasurementsButton.addEventListener("click", function() {
         // Approximate baseline (L-25) centers and SDs inferred from the
