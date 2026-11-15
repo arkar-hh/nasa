@@ -1,0 +1,581 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Astronaut Health Monitor</title>
+
+<style>
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    overflow: hidden;
+    background: #020711;
+    color: #dffaff;
+    font-family: Arial, sans-serif;
+}
+
+.camera {
+    position: fixed;
+    inset: 0;
+    overflow: hidden;
+    perspective: 1000px;
+    background: #020711;
+}
+
+.room {
+    position: absolute;
+    inset: 0;
+    transform-style: preserve-3d;
+    transform: rotateY(0deg);
+    transition: transform 2s ease-in-out;
+}
+
+.room.turning {
+    transform: rotateY(-90deg);
+}
+
+.view {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    backface-visibility: hidden;
+    transition: opacity 0.2s linear;
+    transition-delay: 1.8s;
+}
+
+/* earth out the window sui */
+
+.forward-view {
+    background: radial-gradient(ellipse at center, #10243b 0%, #030914 70%);
+    transform: translateZ(-800px);
+    opacity: 1;
+}
+
+.room.turning .forward-view {
+    opacity: 0;
+    pointer-events: none;
+}
+
+/* window */
+
+.window {
+    position: absolute;
+    width: min(calc(150vw - 40px), calc(150vh - 40px));
+    height: min(calc(150vw -40px), calc(150vh - 40px));
+    border: 12px solid #263e59;
+    border-radius: 50%;
+    left: 50%;
+    top: 58%;
+    transform: translate(-50%, -50%);
+    overflow: hidden;
+    isolation: isolate;
+    background: #020711;
+    box-shadow: 0 0 25px #168cff,
+                inset 0 0 25px #168cff;
+}
+
+.earth {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 50%;
+    transform: translate(100px, 100px) scale(1);
+    transition: transform 1s linear;
+}
+
+.window-label {
+    position: absolute;
+    top: -20%;
+    width: 100%;
+    text-align: center;
+    color: #76dfff;
+    letter-spacing: 4px;
+    font-size: 13px;
+}
+
+/* progress bar  */
+
+.mission-bar {
+    position: fixed;
+    z-index: 30;
+    top: 10px;
+    left: 14px;
+    right: 14px;
+    padding: 8px 12px;
+    background: rgba(0, 10, 25, 0.88);
+    border: 1px solid #174b72;
+    border-radius: 7px;
+}
+
+.mission-labels {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+    color: #8beaff;
+    font-size: 10px;
+    margin-bottom: 7px;
+}
+
+.progress-track {
+    height: 5px;
+    width: 100%;
+    background: #14283c;
+    border-radius: 10px;
+    overflow: hidden;
+}
+
+.progress-fill {
+    height: 100%;
+    width: 0%;
+    background: #28baff;
+    border-radius: 10px;
+    box-shadow: 0 0 8px #168cff;
+    transition: width 1s linear;
+}
+
+/* monitor thing */
+
+.right-view {
+    background: linear-gradient(135deg, #020711, #071426 55%, #020711);
+    transform: rotateY(90deg) translateZ(-800px);
+    opacity: 0;
+    pointer-events: none;
+}
+
+.room.turning .right-view {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+.wall-title { /* this is the 'earth observation window text */
+    position: absolute;
+    top: 15%;
+    left: 8%;
+    color: #65dfff;
+    letter-spacing: 5px;
+    font-size: 15px;
+}
+
+.begin-button {
+    position: fixed;
+    z-index: 10;
+    bottom: 400px;
+    left: 10%;
+    transform: translateX(230%);
+    padding: 16px 28px;
+    border: 2px solid #28baff;
+    border-radius: 8px;
+    background: #06315b;
+    color: white;
+    font-size: 14px;
+    font-weight: bold;
+    letter-spacing: 2px;
+    box-shadow: 0 0 15px #087dff;
+    white-space: nowrap;
+}
+.begin-button:active {
+    background: #087dff;
+}
+
+.hidden {
+    display: none;
+}
+
+.monitor {
+    position: absolute;
+    top: 25%;
+    left: 10%;
+    width: 80%;
+    height: 58%;
+    border: 2px solid #087dff;
+    border-radius: 12px;
+    background: rgba(0, 15, 35, 0.95);
+    box-shadow: 0 0 15px #087dff,
+                inset 0 0 25px rgba(0, 120, 255, 0.2);
+    padding: 20px;
+}
+
+.monitor h2 {
+    color: #55dfff;
+    font-size: 17px;
+    letter-spacing: 3px;
+    margin-top: 0;
+}
+
+.reading {
+    display: flex;
+    justify-content: space-between;
+    border-bottom: 1px solid #17446b;
+    padding: 13px 0;
+    font-size: 14px;
+}
+
+.reading span:last-child {
+    color: #65ffcf;
+}
+
+#monitorButton {
+    width: 100%;
+    margin-top: 20px;
+    padding: 14px;
+    background: #063d75;
+    border: 1px solid #27baff;
+    color: white;
+    border-radius: 6px;
+    font-weight: bold;
+    letter-spacing: 2px;
+    font-size: 12px;
+}
+
+/* navigation */
+
+.nav-button {
+    position: fixed;
+    z-index: 40;
+    bottom: 430px;
+    left: 10%;
+    transform: translateX(-50%);
+    padding: 16px 28px;
+    border: 2px solid #28baff;
+    border-radius: 8px;
+    background: #06315b;
+    color: white;
+    font-size: 14px;
+    font-weight: bold;
+    letter-spacing: 2px;
+    box-shadow: 0 0 15px #087dff;
+    white-space: nowrap;
+}
+
+.nav-button:active {
+    background: #087dff;
+}
+
+.hidden {
+    display: none;
+}
+/* voiced by urs truly */
+
+.voice-assistant {
+    position: fixed;
+    z-index: 50;
+    top: 75px;
+    right: 15px;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 10px;
+    width: 260px;
+}
+
+.voice-icon {
+    width: 48px;
+    height: 48px;
+    border: 2px solid #28baff;
+    border-radius: 50%;
+    background: #06315b;
+    box-shadow: 0 0 15px #087dff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 23px;
+}
+
+.speech-bubble {
+    position: relative;
+    width: 100%;
+    min-height: 65px;
+    padding: 13px;
+    border: 1px solid #28baff;
+    border-radius: 10px;
+    background: rgba(0, 15, 35, 0.96);
+    box-shadow: 0 0 15px #087dff;
+    color: #8beaff;
+    font-size: 13px;
+    line-height: 1.5;
+}
+
+/* lil point of the speech bubble */
+
+.speech-bubble::after {
+    content: "";
+    position: absolute;
+    top: -9px;
+    right: 16px;
+    width: 15px;
+    height: 15px;
+    background: #000f23;
+    border-left: 1px solid #28baff;
+    border-top: 1px solid #28baff;
+    transform: rotate(45deg);
+}
+</style>
+
+</head>
+
+<body>
+
+<!-- progressss -->
+
+<div class="mission-bar">
+    <div class="mission-labels">
+        <span>TRAVELLED: <span id="distance">1,000</span> km</span>
+        <span id="progress">0.3%</span>
+        <span>REMAINING: <span id="remaining">383,400</span> km</span>
+    </div>
+
+    <div class="progress-track">
+        <div class="progress-fill" id="progressFill"></div>
+    </div>
+</div>
+
+<!-- me -->
+
+<div id="voiceAssistant" class="voice-assistant hidden">
+
+    <div class="voice-icon">🔊</div>
+
+    <div class="speech-bubble">
+        <span id="spokenText"></span>
+    </div>
+
+</div>
+
+<!-- room view -->
+
+<div class="camera">
+    <div class="room" id="room">
+
+        <section class="view forward-view">
+            <div class="window-label">
+                EARTH OBSERVATION WINDOW
+            </div>
+
+            <div class="window">
+                <img class="earth" id="earth"
+                     src="earth.png" alt="Earth">
+            </div>
+        </section>
+
+        <section class="view right-view">
+            <div class="wall-title">
+                MEDICAL STATION
+            </div>
+
+            <div class="monitor">
+                <h2>CREW HEALTH MONITOR</h2>
+
+                <div class="reading">
+                    <span>HEART RATE</span>
+                    <span id="heart">--</span>
+                </div>
+
+                <div class="reading">
+                    <span>OXYGEN</span>
+                    <span id="oxygen">--</span>
+                </div>
+
+                <div class="reading">
+                    <span>TEMPERATURE</span>
+                    <span id="temperature">--</span>
+                </div>
+
+                <div class="reading">
+                    <span>RESPIRATION</span>
+                    <span id="respiration">--</span>
+                </div>
+
+                <div class="reading">
+                    <span>BLOOD PRESSURE</span>
+                    <span id="pressure">--</span>
+                </div>
+
+                <button id="monitorButton" type="button">
+                    TAKE MEASUREMENTS
+                </button>
+            </div>
+        </section>
+
+    </div>
+</div>
+
+<!-- navigating -->
+
+<button id="checkButton" class="nav-button" type="button">
+    CHECK HEALTH
+</button>
+
+<button id="beginButton" class ="begin-button" type="button">
+		BEGIN MISSION
+</button>
+
+<button id="returnButton" class="nav-button hidden" type="button">
+    WINDOW VIEW
+</button>
+
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+
+    const room = document.getElementById("room");
+    const checkButton = document.getElementById("checkButton");
+    const returnButton = document.getElementById("returnButton");
+    const monitorButton = document.getElementById("monitorButton");
+    const beginButton = document.getElementById("beginButton")
+    const earth = document.getElementById("earth");
+
+    let atMedicalStation = false;
+    
+    //playing my audio yay
+    
+		    
+		beginButton.addEventListener("click", function() {
+		
+		    var audio = document.getElementById("welcomeAudio");
+		    var assistant = document.getElementById("voiceAssistant");
+		    var text = document.getElementById("spokenText")
+		    function playAudio(){
+		    	const message = "Welcome to the ISS. I will be your assistant monitoring your health here from Earth as you voyage to Mars to ensure your safe journey home.";
+		    	const messsage2 = "Let's check your monitors.";
+		    	audio.play();
+		    	assistant.classList.remove("hidden");
+		    	text.textContent = "";
+		    	audio.currentTime = 0;
+		    	let character = 0;
+		    	const typing = setInterval(function() {
+		    		if (character < message.length){
+		    			text.textContent += message.charAt(character);
+		    			character++;
+		    			} else{
+		    				clearInterval(typing);
+		    			}
+		    	}, 60);
+		    }
+		    playAudio();
+		
+		});
+    
+    // turning left
+
+    checkButton.addEventListener("click", function() {
+
+        if (atMedicalStation) return;
+
+        atMedicalStation = true;
+
+        room.classList.add("turning");
+
+        checkButton.classList.add("hidden");
+        returnButton.classList.remove("hidden");
+
+    });
+
+    // turnign to window
+
+    returnButton.addEventListener("click", function() {
+
+        if (!atMedicalStation) return;
+
+        atMedicalStation = false;
+
+        room.classList.remove("turning");
+
+        returnButton.classList.add("hidden");
+        checkButton.classList.remove("hidden");
+
+    });
+
+    // load reading
+
+    monitorButton.addEventListener("click", function() {
+
+        const readings = [
+            ["heart", "72 BPM"],
+            ["oxygen", "98%"],
+            ["temperature", "36.8 °C"],
+            ["respiration", "16 / MIN"],
+            ["pressure", "118/76 mmHg"]
+        ];
+
+        monitorButton.disabled = true;
+        monitorButton.textContent = "LOADING READINGS...";
+
+        readings.forEach(function(reading, index) {
+
+            setTimeout(function() {
+
+                document.getElementById(reading[0]).textContent =
+                    reading[1];
+
+                if (index === readings.length - 1) {
+                    monitorButton.textContent = "READINGS LOADED";
+                }
+
+            }, (index + 1) * 700);
+
+        });
+
+    });
+
+    // hooking mission progress to shrinking earth
+
+    const totalDistance = 384400;
+    let travelled = 1000;
+
+    function updateMission() {
+
+        const remaining = totalDistance - travelled;
+        const progress = (travelled / totalDistance) * 100;
+
+        document.getElementById("distance").textContent =
+            Math.round(travelled).toLocaleString();
+
+        document.getElementById("remaining").textContent =
+            Math.round(remaining).toLocaleString();
+
+        document.getElementById("progress").textContent =
+            progress.toFixed(1) + "%";
+
+        document.getElementById("progressFill").style.width =
+            progress + "%";
+
+        const scale = Math.max(
+            0.05,
+            1 - (progress / 100) * 0.95
+        );
+
+        earth.style.transform =
+            "translate(100px, 100px) scale(" + scale + ")";
+
+    }
+
+    updateMission();
+
+    setInterval(function() {
+
+        travelled += 600;
+
+        if (travelled >= totalDistance) {
+            travelled = totalDistance;
+        }
+
+        updateMission();
+
+    }, 1000);
+
+});
+</script>
+<!--audio of urs truly -->
+
+<audio id="welcomeAudio" preload="auto">
+    <source src="begin.wav" type="audio/wav">
+</audio>
+
+</body>
+</html>
