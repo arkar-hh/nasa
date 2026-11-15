@@ -888,10 +888,10 @@ document.addEventListener("DOMContentLoaded", function() {
                 (1.6 - stormStartRadiation) * stormProgress;
         }
 
-        // back to 0.313 over 30 seconds in the shelter
+        // back to 0.313 over 20 seconds in the shelter
         if (shelterEntered !== null) {
             const elapsed = Math.min(
-                (Date.now() - shelterEntered) / 30000,
+                (Date.now() - shelterEntered) / 20000,
                 1
             );
 
@@ -935,6 +935,7 @@ document.addEventListener("DOMContentLoaded", function() {
     const stormShelter = document.getElementById("stormShelter");
 
     // voice assistant elements (shared by begin + shelter)
+    const shelterAudio = document.getElementById("shelterAudio")
     const audio = document.getElementById("welcomeAudio");
     const assistant = document.getElementById("voiceAssistant");
     const text = document.getElementById("spokenText");
@@ -1104,6 +1105,10 @@ document.addEventListener("DOMContentLoaded", function() {
     // ---------- enter the solar storm shelter ----------
 
     shelterButton.addEventListener("click", function() {
+    		shelterAudio.pause();
+    		shelterAudio.currentTime=0;
+    		shelterAudio.play();
+    		
 
         checkButton.classList.add("hidden");
         returnButton.classList.add("hidden");
@@ -1146,7 +1151,7 @@ document.addEventListener("DOMContentLoaded", function() {
                         messageIndex++;
 
                         if (messageIndex < messages.length) {
-                            setTimeout(showMessage, 2000);
+                            setTimeout(showMessage, 500);
                         }
                     }
                 }, 60);
@@ -1294,6 +1299,9 @@ document.addEventListener("DOMContentLoaded", function() {
 
 <audio id="welcomeAudio" preload="auto">
     <source src="begin.wav" type="audio/wav">
+</audio>
+<audio id= "shelterAudio" preload="auto">
+	<source src="shelter.wav" type="audio/wav">
 </audio>
 
 </body>
