@@ -188,21 +188,29 @@ body {
     display: none;
 }
 
-.monitor {
+.monitor-row {
     position: absolute;
     top: 25%;
-    left: 10%;
-    width: 80%;
+    left: 5%;
+    width: 90%;
     height: 58%;
-    border: 2px solid #087dff;
-    border-radius: 12px;
-    background: rgba(0, 15, 35, 0.95);
-    box-shadow: 0 0 15px #087dff,
-                inset 0 0 25px rgba(0, 120, 255, 0.2);
-    padding: 20px;
+    display: flex;
+    gap: 20px;
 }
 
-.monitor h2 {
+.monitor-window {
+    flex: 1;
+        min-width: 0;
+        border: 2px solid #087dff;
+        border-radius: 12px;
+        background: rgba(0, 15, 35, 0.95);
+        box-shadow: 0 0 15px #087dff,
+                    inset 0 0 25px rgba(0, 120, 255, 0.2);
+        padding: 20px;
+        overflow-y: auto;
+}
+
+.monitor-window h2 {
     color: #55dfff;
     font-size: 17px;
     letter-spacing: 3px;
@@ -221,7 +229,7 @@ body {
     color: #65ffcf;
 }
 
-#monitorButton {
+.monitor-button {
     width: 100%;
     margin-top: 20px;
     padding: 14px;
@@ -376,38 +384,69 @@ body {
                 MEDICAL STATION
             </div>
 
-            <div class="monitor">
-                <h2>CREW HEALTH MONITOR</h2>
 
-                <div class="reading">
-                    <span>HEART RATE</span>
-                    <span id="heart">--</span>
+            <div class="monitor-row">
+                <div class="monitor-window">
+                    <h2>CREW HEALTH MONITOR</h2>
+
+                    <div class="reading">
+                        <span>HEART RATE</span>
+                        <span id="heart">--</span>
+                    </div>
+
+                    <div class="reading">
+                        <span>OXYGEN</span>
+                        <span id="oxygen">--</span>
+                    </div>
+
+                    <div class="reading">
+                        <span>TEMPERATURE</span>
+                        <span id="temperature">--</span>
+                    </div>
+
+                    <div class="reading">
+                        <span>RESPIRATION</span>
+                        <span id="respiration">--</span>
+                    </div>
+
+                    <div class="reading">
+                        <span>BLOOD PRESSURE</span>
+                        <span id="pressure">--</span>
+                    </div>
+
+                    <button class="monitor-button" type="button">
+                        TAKE MEASUREMENTS
+                    </button>
                 </div>
 
-                <div class="reading">
-                    <span>OXYGEN</span>
-                    <span id="oxygen">--</span>
-                </div>
+                <div class="monitor-window">
+                    <div class="stress-test">
+                        <h2>STRESS</h2>
 
-                <div class="reading">
-                    <span>TEMPERATURE</span>
-                    <span id="temperature">--</span>
-                </div>
+                        <div class="reading">
+                            <span>CURRENT STRESS TEST (CST) SCORE</span>
+                            <span id="cst-score">
+                                <button id="cst-button" class="monitor-button" type="button">TAKE TEST</button>
+                            </span>
+                        </div>
 
-                <div class="reading">
-                    <span>RESPIRATION</span>
-                    <span id="respiration">--</span>
-                </div>
+                        <div class="reading">
+                            <span>CORTISOL</span>
+                            <span id="cortisol">--</span>
+                        </div>
 
-                <div class="reading">
-                    <span>BLOOD PRESSURE</span>
-                    <span id="pressure">--</span>
-                </div>
+                        <div class="reading">
+                            <span>ENDOCANNABINOID</span>
+                            <span id="endocannabinoid">--</span>
+                        </div>
 
-                <button id="monitorButton" type="button">
-                    TAKE MEASUREMENTS
-                </button>
+                        <button class="monitor-button" type="button">
+                            TAKE MEASUREMENTS
+                        </button>
+                    </div>
+                </div>
             </div>
+
         </section>
 
     </div>
