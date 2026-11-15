@@ -571,7 +571,7 @@ document.addEventListener("DOMContentLoaded", function() {
 		
 	function updateDosimeter(){
 		radiation += Math.random() *0.025;
-			
+		radiation -= Math.random()* 0.025;
 		const fluctuation = (Math.random()-0.5) *0.015;
 		const displayedValue = Math.max(0,radiation+fluctuation);
 			
