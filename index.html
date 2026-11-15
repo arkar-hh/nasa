@@ -258,6 +258,13 @@ body {
     background: #087dff;
 }
 
+#returnButton {
+    left: auto;
+    right: 10%;
+    transform: translateX(50%);
+}
+
+
 .hidden {
     display: none;
 }
@@ -431,11 +438,20 @@ document.addEventListener("DOMContentLoaded", function() {
     const earth = document.getElementById("earth");
 
     let atMedicalStation = false;
+    let missionStarted = false;
+
+    let beginTimer = null;
+    let checkTimer = null;
+    let returnTimer = null;
+
     
     //playing my audio yay
     
 		    
 		beginButton.addEventListener("click", function() {
+            missionStarted = true;
+
+            beginButton.classList.add("hidden");
 		
 		    var audio = document.getElementById("welcomeAudio");
 		    var assistant = document.getElementById("voiceAssistant");
@@ -464,15 +480,20 @@ document.addEventListener("DOMContentLoaded", function() {
     // turning left
 
     checkButton.addEventListener("click", function() {
-
         if (atMedicalStation) return;
 
         atMedicalStation = true;
 
+        clearTimeout(beginTimer)
+
         room.classList.add("turning");
 
         checkButton.classList.add("hidden");
-        returnButton.classList.remove("hidden");
+        beginButton.classList.add("hidden");
+
+        returnTimer = setTimeout(function() {
+                returnButton.classList.remove("hidden");
+            }, 2000)
 
     });
 
@@ -487,13 +508,25 @@ document.addEventListener("DOMContentLoaded", function() {
         room.classList.remove("turning");
 
         returnButton.classList.add("hidden");
-        checkButton.classList.remove("hidden");
 
+        if (!missionStarted) {
+            beginTimer = setTimeout(function() {
+                beginButton.classList.remove("hidden");
+            }, 2000)
+        }
+
+        checkTimer = setTimeout(function() {
+                checkButton.classList.remove("hidden");
+            }, 2000)
     });
 
     // load reading
 
     monitorButton.addEventListener("click", function() {
+
+        returnTimer = setTimeout(function() {
+                returnButton.classList.remove("hidden");
+            }, 2000)
 
         const readings = [
             ["heart", "72 BPM"],
