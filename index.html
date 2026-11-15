@@ -575,7 +575,7 @@ document.addEventListener("DOMContentLoaded", function() {
 		const fluctuation = (Math.random()-0.5) *0.015;
 		const displayedValue = Math.max(0,radiation+fluctuation);
 			
-		radiationValue.textContent = displayedValue.toFixed (1.7);
+		radiationValue.textContent = displayedValue.toFixed (3);
 		const fillWidth = Math.min((displayedValue / 5) * 100, 100);
 		radiationFill.style.width = fillWidth + "%";
 			
