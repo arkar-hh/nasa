@@ -43,8 +43,6 @@ body {
     width: 100%;
     height: 100%;
     backface-visibility: hidden;
-    transition: opacity 0.2s linear;
-    transition-delay: 1.8s;
 }
 
 /* earth out the window sui */
@@ -52,11 +50,9 @@ body {
 .forward-view {
     background: radial-gradient(ellipse at center, #10243b 0%, #030914 70%);
     transform: translateZ(-800px) scale(1.8);
-    opacity: 1;
 }
 
 .room.turning .forward-view {
-    opacity: 0;
     pointer-events: none;
 }
 
@@ -143,14 +139,25 @@ body {
 
 .right-view {
     background: linear-gradient(135deg, #020711, #071426 55%, #020711);
-    transform: rotateY(90deg) translateZ(-800px);
+    transform: rotateY(90deg) translateZ(-800px) scale(1.8);
     opacity: 0;
+    visibility: hidden;
     pointer-events: none;
+    transition: opacity 0.5s ease 2s, visibility 0s linear 2.5s;
 }
 
 .room.turning .right-view {
     opacity: 1;
+    visibility: visible;
     pointer-events: auto;
+    transition: opacity 0.5s ease, visibility 0s;
+}
+
+.station-content {
+    position: absolute;
+    inset: 0;
+    transform: scale(0.55);
+    transform-origin: center;
 }
 
 .wall-title { /* this is the 'earth observation window text */
@@ -702,6 +709,7 @@ body:has(.room.turning) .begin-hit {
         </section>
 
         <section class="view right-view">
+            <div class="station-content">
             <div class="wall-title">
                 MEDICAL STATION
             </div>
@@ -712,27 +720,27 @@ body:has(.room.turning) .begin-hit {
                     <h2>CREW HEALTH MONITOR</h2>
 
                     <div class="reading">
-                        <span>HEART RATE</span>
+                        <span>HEART RATE (BPM)</span>
                         <span id="heart">--</span>
                     </div>
 
                     <div class="reading">
-                        <span>OXYGEN</span>
+                        <span>OXYGEN (%)</span>
                         <span id="oxygen">--</span>
                     </div>
 
                     <div class="reading">
-                        <span>TEMPERATURE</span>
+                        <span>TEMPERATURE (°C)</span>
                         <span id="temperature">--</span>
                     </div>
 
                     <div class="reading">
-                        <span>RESPIRATION</span>
+                        <span>RESPIRATION (/MIN)</span>
                         <span id="respiration">--</span>
                     </div>
 
                     <div class="reading">
-                        <span>BLOOD PRESSURE</span>
+                        <span>BLOOD PRESSURE (MMHG)</span>
                         <span id="pressure">--</span>
                     </div>
 
@@ -754,13 +762,23 @@ body:has(.room.turning) .begin-hit {
                         </div>
 
                         <div class="reading">
-                            <span>CORTISOL</span>
-                            <span id="cortisol">--</span>
+                            <span>CORTISOL AM (μg/dL)</span>
+                            <span id="cortisol-morning">--</span>
                         </div>
 
                         <div class="reading">
-                            <span>ENDOCANNABINOID</span>
-                            <span id="endocannabinoid">--</span>
+                            <span>CORTISOL PM (μg/dL)</span>
+                            <span id="cortisol-evening">--</span>
+                        </div>
+
+                        <div class="reading">
+                            <span>AEA (ng/mL)</span>
+                            <span id="aea">--</span>
+                        </div>
+
+                        <div class="reading">
+                            <span>2-AG (ng/mL)</span>
+                            <span id="two-ag">--</span>
                         </div>
 
                         <button class="monitor-button" id="measurements-2" type="button">
@@ -772,6 +790,7 @@ body:has(.room.turning) .begin-hit {
             
             <div id="cst-survey">
                 <!-- build survey with javascript -->
+            </div>
             </div>
 
         </section>
@@ -904,7 +923,8 @@ document.addEventListener("DOMContentLoaded", function() {
     const room = document.getElementById("room");
     const checkButton = document.getElementById("checkButton");
     const returnButton = document.getElementById("returnButton");
-    const monitorButton = document.getElementById("measurements-1");
+    const vitalMeasurementsButton = document.getElementById("measurements-1");
+    const stressMeasurementsButton = document.getElementById("measurements-2");
     const beginButton = document.getElementById("beginButton");
     const earth = document.getElementById("earth");
     const cstSurvey = document.getElementById("cst-survey");
@@ -1004,43 +1024,81 @@ document.addEventListener("DOMContentLoaded", function() {
 
         checkTimer = setTimeout(function() {
             checkButton.classList.remove("hidden");
-        }, 2000);
+        }, 2500);
     });
 
-    // ---------- load readings ----------
+    // ---------- sample measurement readings ----------
 
-    monitorButton.addEventListener("click", function() {
+    function sampleNormal(mean, standardDeviation, minimum, maximum) {
+        for (let attempt = 0; attempt < 1000; attempt++) {
+            const first = Math.random() || Number.EPSILON;
+            const second = Math.random();
+            const standardNormal = Math.sqrt(-2 * Math.log(first)) *
+                Math.cos(2 * Math.PI * second);
+            const sample = mean + standardDeviation * standardNormal;
 
+            if (sample >= minimum && sample <= maximum) {
+                return sample;
+            }
+        }
+
+        throw new Error("Unable to sample a measurement within its valid range.");
+    }
+
+    function formatNormal(mean, standardDeviation, minimum, maximum, decimals) {
+        return sampleNormal(mean, standardDeviation, minimum, maximum)
+            .toFixed(decimals);
+    }
+
+    function takeMeasurements(button, readings) {
+        clearTimeout(returnTimer);
         returnTimer = setTimeout(function() {
             returnButton.classList.remove("hidden");
         }, 2000);
 
-        const readings = [
-            ["heart", "72 BPM"],
-            ["oxygen", "98%"],
-            ["temperature", "36.8 °C"],
-            ["respiration", "16 / MIN"],
-            ["pressure", "118/76 mmHg"]
-        ];
-
-        monitorButton.disabled = true;
-        monitorButton.textContent = "LOADING READINGS...";
+        button.disabled = true;
+        button.textContent = "LOADING READINGS...";
 
         readings.forEach(function(reading, index) {
-
             setTimeout(function() {
-
-                document.getElementById(reading[0]).textContent =
-                    reading[1];
+                document.getElementById(reading[0]).textContent = reading[1]();
 
                 if (index === readings.length - 1) {
-                    monitorButton.textContent = "READINGS LOADED";
+                    button.disabled = false;
+                    button.textContent = "READINGS LOADED";
                 }
-
             }, (index + 1) * 700);
-
         });
+    }
 
+    vitalMeasurementsButton.addEventListener("click", function() {
+        // Illustrative resting-adult means and standard deviations.
+        const readings = [
+            ["heart", function() { return formatNormal(72, 8, 40, 180, 0) + " BPM"; }],
+            ["oxygen", function() { return formatNormal(98, 0.7, 85, 100, 1) + "%"; }],
+            ["temperature", function() { return formatNormal(36.8, 0.3, 34, 42, 1) + " °C"; }],
+            ["respiration", function() { return formatNormal(16, 2, 5, 40, 0) + " / MIN"; }],
+            ["pressure", function() {
+                const systolic = formatNormal(118, 10, 70, 200, 0);
+                const diastolic = formatNormal(76, 8, 40, 130, 0);
+                return systolic + "/" + diastolic + " mmHg";
+            }]
+        ];
+
+        takeMeasurements(vitalMeasurementsButton, readings);
+    });
+
+    stressMeasurementsButton.addEventListener("click", function() {
+        // Approximate baseline (L-25) centers and SDs inferred from the
+        // paper's plotted distributions; they are not reported as mean ± SD.
+        const readings = [
+            ["cortisol-morning", function() { return formatNormal(0.48, 0.17, 0, 2, 2); }],
+            ["cortisol-evening", function() { return formatNormal(0.16, 0.06, 0, 1, 2); }],
+            ["aea", function() { return formatNormal(0.23, 0.02, 0, 1, 2); }],
+            ["two-ag", function() { return formatNormal(6.0, 2.3, 0, 30, 1); }]
+        ];
+
+        takeMeasurements(stressMeasurementsButton, readings);
     });
 
     // ---------- enter the solar storm shelter ----------
@@ -1222,7 +1280,7 @@ document.addEventListener("DOMContentLoaded", function() {
         const total = values.reduce(function(sum, v) { return sum + v; }, 0);
         const average = total / values.length;
 
-        document.getElementById("cst-value").textContent = average.toFixed(1) + " / 6";
+        document.getElementById("cst-value").textContent = average.toFixed(1) + " / 6.0";
         wrapper.classList.add("hidden");
     });
 
