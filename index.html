@@ -53,7 +53,7 @@ body {
 
 .forward-view {
     background: radial-gradient(ellipse at center, #10243b 0%, #030914 70%);
-    transform: translateZ(-800px);
+    transform: translateZ(-800px) scale(1.8);
     opacity: 1;
 }
 
@@ -66,8 +66,8 @@ body {
 
 .window {
     position: absolute;
-    width: min(calc(150vw - 40px), calc(150vh - 40px));
-    height: min(calc(150vw -40px), calc(150vh - 40px));
+    width: min(calc(83vw - 22px), calc(83vh - 22px));
+    height: min(calc(83vw - 22px), calc(83vh - 22px));
     border: 12px solid #263e59;
     border-radius: 50%;
     left: 50%;
@@ -164,25 +164,89 @@ body {
     font-size: 15px;
 }
 
+/* black base */
 .begin-button {
-    position: fixed;
-    z-index: 10;
-    bottom: 400px;
-    left: 10%;
-    transform: translateX(230%);
-    padding: 16px 28px;
-    border: 2px solid #28baff;
-    border-radius: 8px;
-    background: #06315b;
+    pointer-events: none;
+    position: absolute;
+    top: 40%; 
+    right: 130px;
+    bottom: auto;
+    left: auto;
+    transform: none;
+    width: 150px;
+    height: 150px;
+    padding: 0;
+    border: none;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    background: radial-gradient(circle at 50% 25%, #333, #0a0a0a 60%, #000);
+    box-shadow:
+        0 8px 16px rgba(0, 0, 0, 0.7),             /* shadow on the panel */
+        inset 0 3px 3px rgba(255, 255, 255, 0.15), /* top rim highlight */
+        inset 0 -6px 10px rgba(0, 0, 0, 0.9);      /* recessed lower edge */
+    -webkit-tap-highlight-color: transparent;
     color: white;
-    font-size: 14px;
-    font-weight: bold;
-    letter-spacing: 2px;
-    box-shadow: 0 0 15px #087dff;
-    white-space: nowrap;
 }
-.begin-button:active {
-    background: #087dff;
+
+/* red cap */
+.begin-cap {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100px;
+    height: 100px;
+    border-radius: 50%;
+    text-align: center;
+    font-size: 13px;
+    font-weight: bold;
+    letter-spacing: 1px;
+    line-height: 1.3;
+    color: white;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
+    background: radial-gradient(circle at 35% 28%, #ff7a7a, #e02020 45%, #9c1010);
+    transform: translateY(-8px);
+    box-shadow:
+        0 8px 0 #6b0a0a,                           /* cap side wall */
+        0 13px 12px rgba(0, 0, 0, 0.6),            /* shadow cast on the base */
+        inset 0 3px 4px rgba(255, 255, 255, 0.45); /* top highlight */
+    transition: transform 0.08s, box-shadow 0.08s;
+}
+
+.begin-button.pressed .begin-cap {
+    transform: translateY(-1px);
+    background: radial-gradient(circle at 35% 28%, #f05a5a, #c41a1a 45%, #8a0d0d);
+    box-shadow:
+        0 1px 0 #6b0a0a,
+        0 3px 5px rgba(0, 0, 0, 0.6),
+        inset 0 2px 6px rgba(0, 0, 0, 0.35);
+}
+
+
+.begin-button:focus-visible {
+    outline: 2px solid #28baff;
+    outline-offset: 4px;
+}
+
+
+.begin-hit {
+    position: fixed;
+    z-index: 20;
+    top: 40%;
+    right: 130px;
+    width: 150px;
+    height: 150px;
+    padding: 0;
+    border: none;
+    border-radius: 50%;
+    background: transparent;
+    cursor: pointer;
+}
+
+body:has(.room.turning) .begin-hit {
+    pointer-events: none;
 }
 
 .monitor-row {
@@ -633,6 +697,10 @@ body {
                 <img class="earth" id="earth"
                      src="earth.png" alt="Earth">
             </div>
+            <button id="beginButton" class="begin-button" type="button" tabindex="-1" aria-hidden="true">
+                <span class="begin-cap">BEGIN<br>MISSION</span>
+            </button>
+
         </section>
 
         <section class="view right-view">
@@ -719,13 +787,13 @@ body {
     CHECK HEALTH
 </button>
 
-<button id="beginButton" class ="begin-button" type="button">
-		BEGIN MISSION
-</button>
 
 <button id="returnButton" class="nav-button hidden" type="button">
     WINDOW VIEW
 </button>
+
+<button id="beginHit" class="begin-hit" type="button" aria-label="Begin mission"></button>
+
 
 <!-- STUFF TO PASTE --> 
 
@@ -793,6 +861,8 @@ document.addEventListener("DOMContentLoaded", function() {
     const earth = document.getElementById("earth");
     const cstSurvey = document.getElementById("cst-survey");
     const testButton = document.getElementById("cst-button");
+    const beginHit = document.getElementById("beginHit");
+
 
     const cstQuestions = [
         ["TENSE", "CALM"],
@@ -804,10 +874,10 @@ document.addEventListener("DOMContentLoaded", function() {
     ]
     const shelterButton = document.getElementById("shelterButton");
 
-		const sceneFade = document.getElementById("sceneFade");
-		const stormShelter = document.getElementById("stormShelter");
+	const sceneFade = document.getElementById("sceneFade");
+	const stormShelter = document.getElementById("stormShelter");
 		
-		let shelterTriggered = false;
+	let shelterTriggered = false;
 
     let atMedicalStation = false;
     let missionStarted = false;
@@ -816,18 +886,24 @@ document.addEventListener("DOMContentLoaded", function() {
     let checkTimer = null;
     let returnTimer = null;
 
-    
-    //playing my audio yay
 
     testButton.addEventListener("click", function() {
         wrapper.classList.remove("hidden")
     });
     
+    
+    //playing my audio yay
+
+    beginHit.addEventListener("pointerdown", function() {
+        beginButton.classList.add("pressed");
+    });
 		    
-    beginButton.addEventListener("click", function() {
+    beginHit.addEventListener("click", function() {
+        if (missionStarted) return;
         missionStarted = true;
 
-        beginButton.classList.add("hidden");
+        beginButton.classList.add("pressed");
+        beginHit.disabled = true;
     
         var audio = document.getElementById("welcomeAudio");
         var assistant = document.getElementById("voiceAssistant");
@@ -865,7 +941,6 @@ document.addEventListener("DOMContentLoaded", function() {
         room.classList.add("turning");
 
         checkButton.classList.add("hidden");
-        beginButton.classList.add("hidden");
 
         returnTimer = setTimeout(function() {
                 returnButton.classList.remove("hidden");
@@ -884,12 +959,6 @@ document.addEventListener("DOMContentLoaded", function() {
         room.classList.remove("turning");
 
         returnButton.classList.add("hidden");
-
-        if (!missionStarted) {
-            beginTimer = setTimeout(function() {
-                beginButton.classList.remove("hidden");
-            }, 2000)
-        }
 
         checkTimer = setTimeout(function() {
                 checkButton.classList.remove("hidden");
@@ -939,6 +1008,8 @@ document.addEventListener("DOMContentLoaded", function() {
     // Enter the solar storm shelter
 
 		shelterButton.addEventListener("click", function() {
+            checkButton.classList.add("hidden")
+
 		
 		    shelterButton.classList.add("hidden");
 		
