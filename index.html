@@ -561,9 +561,34 @@ body {
 <button id="returnButton" class="nav-button hidden" type="button">
     WINDOW VIEW
 </button>
-
 <script>
 document.addEventListener("DOMContentLoaded", function() {
+
+	const doseRate = document.getElementById("doseRate");
+	const radiationFill = document.getElementbyId("radiationFill");
+	const radiationStatus = document.getElementById("radiationStatus");		
+	let radiation = 0.313 
+		
+	function updateDosimeter(){
+		radiation += Math.random() *0.025;
+			
+		const fluctuation = (Math.random()-0.5) *0.015;
+		const displayedValue = Math.max(0,radiation+fluctuation);
+			
+		radiationValue.textContent = displayedValue.toFixed (1.7);
+		const fillWidth = Math.min((displayedValue / 5) * 100, 100);
+		radiationFill.style.width = fillWidth + "%";
+			
+		if (displayedValue < 0.7){
+			radiationStatus.textContent="NORMAL";
+		} else if (displayedValue < 1.5){
+			radiationStatus.textContent="ELEVATED";
+		} else{
+			radiationStatus.textContent = "HIGH";
+		}
+	}
+	setInterval(updateDosimeter, 1500);
+		
 
     const room = document.getElementById("room");
     const checkButton = document.getElementById("checkButton");
