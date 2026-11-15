@@ -1,0 +1,1275 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Astronaut Health Monitor</title>
+
+<style>
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    overflow: hidden;
+    background: #020711;
+    color: #dffaff;
+    font-family: Arial, sans-serif;
+}
+
+.camera {
+    position: fixed;
+    inset: 0;
+    overflow: hidden;
+    perspective: 1000px;
+    background: #020711;
+}
+
+.room {
+    position: absolute;
+    inset: 0;
+    transform-style: preserve-3d;
+    transform: rotateY(0deg);
+    transition: transform 2s ease-in-out;
+}
+
+.room.turning {
+    transform: rotateY(-90deg);
+}
+
+.view {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    backface-visibility: hidden;
+    transition: opacity 0.2s linear;
+    transition-delay: 1.8s;
+}
+
+/* earth out the window sui */
+
+.forward-view {
+    background: radial-gradient(ellipse at center, #10243b 0%, #030914 70%);
+    transform: translateZ(-800px) scale(1.8);
+    opacity: 1;
+}
+
+.room.turning .forward-view {
+    opacity: 0;
+    pointer-events: none;
+}
+
+/* window */
+
+.window {
+    position: absolute;
+    width: min(calc(83vw - 22px), calc(83vh - 22px));
+    height: min(calc(83vw - 22px), calc(83vh - 22px));
+    border: 12px solid #263e59;
+    border-radius: 50%;
+    left: 50%;
+    top: 58%;
+    transform: translate(-50%, -50%);
+    overflow: hidden;
+    isolation: isolate;
+    background: #020711;
+    box-shadow: 0 0 25px #168cff,
+                inset 0 0 25px #168cff;
+}
+
+.earth {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 50%;
+    transform: translate(100px, 100px) scale(1);
+    transition: transform 1s linear;
+}
+
+.window-label {
+    position: absolute;
+    top: -20%;
+    width: 100%;
+    text-align: center;
+    color: #76dfff;
+    letter-spacing: 4px;
+    font-size: 13px;
+}
+
+/* progress bar  */
+
+.mission-bar {
+    position: fixed;
+    z-index: 30;
+    top: 10px;
+    left: 14px;
+    right: 14px;
+    padding: 8px 12px;
+    background: rgba(0, 10, 25, 0.88);
+    border: 1px solid #174b72;
+    border-radius: 7px;
+}
+
+.mission-labels {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+    color: #8beaff;
+    font-size: 10px;
+    margin-bottom: 7px;
+}
+
+.progress-track {
+    height: 5px;
+    width: 100%;
+    background: #14283c;
+    border-radius: 10px;
+    overflow: hidden;
+}
+
+.progress-fill {
+    height: 100%;
+    width: 0%;
+    background: #28baff;
+    border-radius: 10px;
+    box-shadow: 0 0 8px #168cff;
+    transition: width 1s linear;
+}
+
+/* monitor thing */
+
+.right-view {
+    background: linear-gradient(135deg, #020711, #071426 55%, #020711);
+    transform: rotateY(90deg) translateZ(-800px);
+    opacity: 0;
+    pointer-events: none;
+}
+
+.room.turning .right-view {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+.wall-title { /* this is the 'earth observation window text */
+    position: absolute;
+    top: 15%;
+    left: 8%;
+    color: #65dfff;
+    letter-spacing: 5px;
+    font-size: 15px;
+}
+
+/* black base */
+.begin-button {
+    pointer-events: none;
+    position: absolute;
+    top: 40%; 
+    right: 130px;
+    bottom: auto;
+    left: auto;
+    transform: none;
+    width: 150px;
+    height: 150px;
+    padding: 0;
+    border: none;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    background: radial-gradient(circle at 50% 25%, #333, #0a0a0a 60%, #000);
+    box-shadow:
+        0 8px 16px rgba(0, 0, 0, 0.7),             /* shadow on the panel */
+        inset 0 3px 3px rgba(255, 255, 255, 0.15), /* top rim highlight */
+        inset 0 -6px 10px rgba(0, 0, 0, 0.9);      /* recessed lower edge */
+    -webkit-tap-highlight-color: transparent;
+    color: white;
+}
+
+/* red cap */
+.begin-cap {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100px;
+    height: 100px;
+    border-radius: 50%;
+    text-align: center;
+    font-size: 13px;
+    font-weight: bold;
+    letter-spacing: 1px;
+    line-height: 1.3;
+    color: white;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
+    background: radial-gradient(circle at 35% 28%, #ff7a7a, #e02020 45%, #9c1010);
+    transform: translateY(-8px);
+    box-shadow:
+        0 8px 0 #6b0a0a,                           /* cap side wall */
+        0 13px 12px rgba(0, 0, 0, 0.6),            /* shadow cast on the base */
+        inset 0 3px 4px rgba(255, 255, 255, 0.45); /* top highlight */
+    transition: transform 0.08s, box-shadow 0.08s;
+}
+
+.begin-button.pressed .begin-cap {
+    transform: translateY(-1px);
+    background: radial-gradient(circle at 35% 28%, #f05a5a, #c41a1a 45%, #8a0d0d);
+    box-shadow:
+        0 1px 0 #6b0a0a,
+        0 3px 5px rgba(0, 0, 0, 0.6),
+        inset 0 2px 6px rgba(0, 0, 0, 0.35);
+}
+
+
+.begin-button:focus-visible {
+    outline: 2px solid #28baff;
+    outline-offset: 4px;
+}
+
+
+.begin-hit {
+    position: fixed;
+    z-index: 20;
+    top: 40%;
+    right: 130px;
+    width: 150px;
+    height: 150px;
+    padding: 0;
+    border: none;
+    border-radius: 50%;
+    background: transparent;
+    cursor: pointer;
+}
+
+body:has(.room.turning) .begin-hit {
+    pointer-events: none;
+}
+
+.monitor-row {
+    position: absolute;
+    top: 25%;
+    left: 5%;
+    width: 90%;
+    height: 58%;
+    display: flex;
+    gap: 20px;
+}
+
+.monitor-window {
+    flex: 1;
+        min-width: 0;
+        border: 2px solid #087dff;
+        border-radius: 12px;
+        background: rgba(0, 15, 35, 0.95);
+        box-shadow: 0 0 15px #087dff,
+                    inset 0 0 25px rgba(0, 120, 255, 0.2);
+        padding: 20px;
+        overflow-y: auto;
+}
+
+.monitor-window h2 {
+    color: #55dfff;
+    font-size: 17px;
+    letter-spacing: 3px;
+    margin-top: 0;
+}
+
+.reading {
+    display: flex;
+    justify-content: space-between;
+    border-bottom: 1px solid #17446b;
+    padding: 13px 0;
+    font-size: 14px;
+}
+
+.reading span:last-child {
+    color: #65ffcf;
+}
+
+.monitor-button {
+    width: 100%;
+    margin-top: 20px;
+    padding: 14px;
+    background: #063d75;
+    border: 1px solid #27baff;
+    color: white;
+    border-radius: 6px;
+    font-weight: bold;
+    letter-spacing: 2px;
+    font-size: 16px;
+}
+
+/* navigation */
+
+.nav-button {
+    position: fixed;
+    z-index: 40;
+    bottom: 430px;
+    left: 10%;
+    transform: translateX(-50%);
+    padding: 16px 28px;
+    border: 2px solid #28baff;
+    border-radius: 8px;
+    background: #06315b;
+    color: white;
+    font-size: 14px;
+    font-weight: bold;
+    letter-spacing: 2px;
+    box-shadow: 0 0 15px #087dff;
+    white-space: nowrap;
+}
+
+.nav-button:active {
+    background: #087dff;
+}
+
+#returnButton {
+    left: auto;
+    right: 10%;
+    transform: translateX(50%);
+}
+
+
+.hidden {
+    display: none;
+}
+/* voiced by urs truly */
+
+.voice-assistant {
+    position: fixed;
+    z-index: 50;
+    top: 75px;
+    right: 15px;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 10px;
+    width: 260px;
+}
+
+.voice-icon {
+    width: 48px;
+    height: 48px;
+    border: 2px solid #28baff;
+    border-radius: 50%;
+    background: #06315b;
+    box-shadow: 0 0 15px #087dff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 23px;
+}
+
+.speech-bubble {
+    position: relative;
+    width: 100%;
+    min-height: 65px;
+    padding: 13px;
+    border: 1px solid #28baff;
+    border-radius: 10px;
+    background: rgba(0, 15, 35, 0.96);
+    box-shadow: 0 0 15px #087dff;
+    color: #8beaff;
+    font-size: 13px;
+    line-height: 1.5;
+}
+
+/* lil point of the speech bubble */
+
+.speech-bubble::after {
+    content: "";
+    position: absolute;
+    top: -9px;
+    right: 16px;
+    width: 15px;
+    height: 15px;
+    background: #000f23;
+    border-left: 1px solid #28baff;
+    border-top: 1px solid #28baff;
+    transform: rotate(45deg);
+}
+
+/* dosimeter rahh */
+
+.dosimeter {
+    position: fixed;
+    top: 80px;
+    left: 15px;
+    z-index: 15;
+    width: 120px;
+    padding: 9px;
+    border: 1px solid #168cff;
+    border-radius: 5px;
+    background: rgba(0, 12, 28, 0.94);
+    box-shadow: 0 0 12px rgba(0, 130, 255, 0.4);
+    color: #8beaff;
+    font-family: monospace;
+}
+
+.dosimeter-heading {
+    display: flex;
+    justify-content: space-between;
+    font-size: 7px;
+    letter-spacing: 1px;
+}
+
+.dosimeter-status {
+    color: #65ffcf;
+}
+
+.dosimeter-reading {
+    margin-top: 4px;
+    font-size: 17px;
+    font-weight: bold;
+    color: #65ffcf;
+}
+
+.dosimeter-unit {
+    font-size: 7px;
+    color: #8beaff;
+}
+
+.dosimeter-label {
+    margin-top: 2px;
+    font-size: 5px;
+    letter-spacing: 1px;
+    color: #779bb7;
+}
+
+.dosimeter-track {
+    height: 5px;
+    margin-top: 2px;
+    background: #142d45;
+    border-radius: 5px;
+    overflow: hidden;
+}
+
+#radiationFill {
+    width: 5%;
+    height: 100%;
+    background: #65ffcf;
+    box-shadow: 0 0 8px #65ffcf;
+    transition: width 0.5s ease;
+}
+
+.dosimeter-footer {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 3px;
+    font-size: 8px;
+    letter-spacing: 1px;
+}
+
+#radiationStatus {
+    color: #65ffcf;
+}
+
+/*STUFF TO PASTEE */
+
+/* SOLAR STORM SHELTER */
+
+.storm-shelter {
+    position: fixed;
+    inset: 0;
+    z-index: 10;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 1.5s ease;
+    background: linear-gradient(135deg, #f8fcff, #dceaf3);
+    color: #31536a;
+    overflow: hidden;
+}
+
+.storm-shelter.active {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+.shelter-title {
+    position: absolute;
+    top: 8%;
+    width: 100%;
+    text-align: center;
+    font-size: 17px;
+    letter-spacing: 4px;
+    color: #41677f;
+}
+
+
+.shelter-room {
+    position: absolute;
+    top: 23%;
+    left: 8%;
+    width: 84%;
+    height: 58%;
+    border: 5px solid #c5d9e5;
+    border-radius: 25px;
+    background: linear-gradient(145deg, #ffffff, #e5f0f6);
+    box-shadow: 0 0 35px rgba(91, 163, 205, 0.35),
+                inset 0 0 30px rgba(130, 190, 220, 0.2);
+    overflow: hidden;
+}
+/* Central safe area */
+
+
+.shelter-light {
+    position: absolute;
+    top: 0;
+    left: 20%;
+    width: 60%;
+    height: 7px;
+    background: white;
+    box-shadow: 0 0 25px 12px white;
+}
+
+/* Scene transition */
+
+.scene-fade {
+    position: fixed;
+    inset: 0;
+    z-index: 100;
+    background: black;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 1.2s ease;
+}
+
+.scene-fade.active {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+/* Shelter button */
+
+#shelterButton {
+    bottom: 850px;
+    left: 50%;
+    transform: translateX(-50%);
+}
+
+
+.survey {
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+
+    position: absolute;
+    width: 75%;
+    height: 75%;
+    border: 1px solid #263e59;
+    border-radius: 1%;
+
+    overflow: hidden;
+    isolation: isolate;
+    background: #020711;
+    box-shadow: 0 0 25px #168cff,
+                inset 0 0 25px #168cff;
+    z-index: 45;
+
+    display: flex;
+    flex-direction: column;
+    justify-content: space-evenly;
+    padding: 20px 30px; 
+}
+
+.survey-q {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.label-left, .label-right {
+    flex: 0 0 12em;
+    font-size: 20px;
+    color: #8beaff;
+}
+
+.label-left  { text-align: right; }
+.label-right { text-align: left; }
+
+.survey-close {
+    position: absolute;
+    top: 10px;
+    right: 14px;
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    background: transparent;
+    border: 1px solid #27baff;
+    border-radius: 6px;
+    color: #8beaff;
+    font-size: 16px;
+    line-height: 1;
+    cursor: pointer;
+}
+
+.survey-close:hover {
+    background: #063d75;
+    color: white;
+}
+
+.survey-scale {
+    flex: 1;
+    display: flex;
+    justify-content: space-between;
+}
+
+.survey-scale input {
+    accent-color: #28baff;
+    width: 18px;
+    height: 18px;
+    margin: 0;
+}
+
+.hidden {
+    display: none;
+}
+
+
+</style>
+
+</head>
+
+<body>
+
+<!-- progressss -->
+
+<div class="mission-bar" class="hidden" id="missionBar">
+    <div class="mission-labels">
+        <span>TRAVELLED: <span id="distance">1,000</span> km</span>
+        <span id="progress">0.0%</span>
+        <span>REMAINING: <span id="remaining">225,000000</span> km</span>
+    </div>
+
+    <div class="progress-track">
+        <div class="progress-fill" id="progressFill"></div>
+    </div>
+</div>
+
+<!-- dosimeter -->
+
+<div class = "dosimeter hidden" id="dosimeter">
+	<div class = "dosimeter-heading">
+		<span> DOSIMETER </span>
+	</div>
+	
+	<div class="dosimeter-reading">
+		<span id = "doseRate">0.313</span>
+		<span class = "dosimeter-unit">&mu;Gy/min</span>
+	</div>
+	
+	<div class = "dosimeter-label">DOSE RATE </div>
+	<div class = "dosimeter-track">
+		<div id= "radiationFill"></div>
+	</div>
+	<div class = "dosimeter-footer">
+		<span id='radiationStatus'>NORMAL </span>
+	</div>
+</div>
+
+<!-- me -->
+
+<div id="voiceAssistant" class="voice-assistant hidden">
+
+    <div class="voice-icon">🔊</div>
+
+    <div class="speech-bubble">
+        <span id="spokenText"></span>
+    </div>
+
+</div>
+
+<!-- room view -->
+
+<div class="camera">
+    <div class="room" id="room">
+
+        <section class="view forward-view">
+            <div class="window-label">
+                EARTH OBSERVATION WINDOW
+            </div>
+
+            <div class="window">
+                <img class="earth" id="earth"
+                     src="earth.png" alt="Earth">
+            </div>
+            <button id="beginButton" class="begin-button" type="button" tabindex="-1" aria-hidden="true">
+                <span class="begin-cap">BEGIN<br>MISSION</span>
+            </button>
+
+        </section>
+
+        <section class="view right-view">
+            <div class="wall-title">
+                MEDICAL STATION
+            </div>
+
+
+            <div class="monitor-row">
+                <div class="monitor-window">
+                    <h2>CREW HEALTH MONITOR</h2>
+
+                    <div class="reading">
+                        <span>HEART RATE</span>
+                        <span id="heart">--</span>
+                    </div>
+
+                    <div class="reading">
+                        <span>OXYGEN</span>
+                        <span id="oxygen">--</span>
+                    </div>
+
+                    <div class="reading">
+                        <span>TEMPERATURE</span>
+                        <span id="temperature">--</span>
+                    </div>
+
+                    <div class="reading">
+                        <span>RESPIRATION</span>
+                        <span id="respiration">--</span>
+                    </div>
+
+                    <div class="reading">
+                        <span>BLOOD PRESSURE</span>
+                        <span id="pressure">--</span>
+                    </div>
+
+                    <button class="monitor-button" id="measurements-1" type="button">
+                        TAKE MEASUREMENTS
+                    </button>
+                </div>
+
+                <div class="monitor-window">
+                    <div class="stress-test">
+                        <h2>STRESS</h2>
+
+                        <div class="reading">
+                            <span>CURRENT STRESS TEST (CST) SCORE</span>
+                            <span id="cst-score">
+                                <span id="cst-value">--</span>
+                                <button id="cst-button" class="monitor-button" type="button">TAKE TEST</button>
+                            </span>
+                        </div>
+
+                        <div class="reading">
+                            <span>CORTISOL</span>
+                            <span id="cortisol">--</span>
+                        </div>
+
+                        <div class="reading">
+                            <span>ENDOCANNABINOID</span>
+                            <span id="endocannabinoid">--</span>
+                        </div>
+
+                        <button class="monitor-button" id="measurements-2" type="button">
+                            TAKE MEASUREMENTS
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <div id="cst-survey">
+                <!-- build survey with javascript -->
+            </div>
+
+        </section>
+
+    </div>
+</div>
+
+<!-- navigating -->
+
+<button id="checkButton" class="nav-button" type="button">
+    CHECK HEALTH
+</button>
+
+
+<button id="returnButton" class="nav-button hidden" type="button">
+    WINDOW VIEW
+</button>
+
+<button id="beginHit" class="begin-hit" type="button" aria-label="Begin mission"></button>
+
+
+<!-- STUFF TO PASTE --> 
+
+
+<!-- SOLAR STORM SHELTER BUTTON -->
+
+<button id="shelterButton" class="nav-button hidden" type="button">
+    ENTER STORM SHELTER
+</button>
+
+<!-- WHITE TRANSITION -->
+
+<div id="sceneFade" class="scene-fade"></div>
+
+<!-- SOLAR STORM SHELTER ROOM -->
+
+<div id="stormShelter" class="storm-shelter">
+
+    <div class="shelter-title">
+        STORM SHELTER
+    </div>
+
+    <div class="shelter-room">
+
+        <div class="shelter-light"></div>
+    </div>
+
+</div>
+
+<!-- END --> 
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+
+    // ---------- shared state ----------
+
+    const doseRate = document.getElementById("doseRate");
+    const radiationFill = document.getElementById("radiationFill");
+    const radiationStatus = document.getElementById("radiationStatus");
+    let radiation = 0.313;
+    let stormRadiation = false;
+    let stormStartRadiation = null;
+    let shelterStartRadiation = 0.313;
+    const totalDistance = 225000000;
+    let travelled = 1000;
+
+    let shelterTriggered = false;
+    let shelterEntered = null;
+
+    // ---------- dosimeter (with solar storm) ----------
+
+    function updateDosimeter() {
+        const progress = (travelled / totalDistance) * 100;
+
+        // normal fluctuations
+        if (stormStartRadiation === null && shelterEntered === null) {
+            radiation = 0.313 + (Math.random() - 0.5) * 0.03;
+        }
+
+        // remember the reading when the storm begins at 60%
+        if (progress >= 60 &&
+            stormStartRadiation === null &&
+            shelterEntered === null) {
+            stormStartRadiation = radiation;
+            stormRadiation = true;
+        }
+
+        // gradually increase to 1.6 by 70%
+        if (shelterEntered === null && stormStartRadiation !== null) {
+            const stormProgress = Math.min(
+                Math.max((progress - 60) / 10, 0),
+                1
+            );
+
+            radiation = stormStartRadiation +
+                (1.6 - stormStartRadiation) * stormProgress;
+        }
+
+        // back to 0.313 over 20 seconds in the shelter
+        if (shelterEntered !== null) {
+            const elapsed = Math.min(
+                (Date.now() - shelterEntered) / 20000,
+                1
+            );
+
+            radiation = shelterStartRadiation +
+                (0.313 - shelterStartRadiation) * elapsed;
+
+            if (elapsed >= 1) {
+                radiation = 0.313;
+                stormRadiation = false;
+            }
+        }
+
+        doseRate.textContent = radiation.toFixed(3);
+
+        const fillWidth = Math.min((radiation / 5) * 100, 100);
+        radiationFill.style.width = fillWidth + "%";
+
+        if (radiation < 0.7) {
+            radiationStatus.textContent = "NORMAL";
+        } else if (radiation < 1.5) {
+            radiationStatus.textContent = "ELEVATED";
+        } else {
+            radiationStatus.textContent = "HIGH";
+        }
+    }
+
+    // ---------- elements ----------
+
+    const room = document.getElementById("room");
+    const checkButton = document.getElementById("checkButton");
+    const returnButton = document.getElementById("returnButton");
+    const monitorButton = document.getElementById("measurements-1");
+    const beginButton = document.getElementById("beginButton");
+    const earth = document.getElementById("earth");
+    const cstSurvey = document.getElementById("cst-survey");
+    const testButton = document.getElementById("cst-button");
+    const beginHit = document.getElementById("beginHit");
+    const shelterButton = document.getElementById("shelterButton");
+    const sceneFade = document.getElementById("sceneFade");
+    const stormShelter = document.getElementById("stormShelter");
+
+    // voice assistant elements (shared by begin + shelter)
+    const shelterAudio = document.getElementById("shelterAudio")
+    const audio = document.getElementById("welcomeAudio");
+    const assistant = document.getElementById("voiceAssistant");
+    const text = document.getElementById("spokenText");
+
+    const cstQuestions = [
+        ["TENSE", "CALM"],
+        ["DOUBTFUL", "CONFIDENT"],
+        ["WORRIED", "UNCONCERNED"],
+        ["AGITATED", "UNWOUND"],
+        ["UNCOMFORTABLE", "COMFORTABLE"],
+        ["APPREHENSIVE", "RELAXED"]
+    ];
+
+    let atMedicalStation = false;
+    let missionStarted = false;
+		let missionRunning = false;
+		let missionTimer = null;
+		let doseTimer = null;
+    let beginTimer = null;
+    let checkTimer = null;
+    let returnTimer = null;
+
+    testButton.addEventListener("click", function() {
+        wrapper.classList.remove("hidden");
+    });
+
+		// ---------- begin mission + welcome audio ----------
+
+		const missionBar = document.getElementById("missionBar");
+		const dosimeter = document.getElementById("dosimeter");
+		
+		beginHit.addEventListener("pointerdown", function() {
+		    beginButton.classList.add("pressed");
+		});
+		
+		beginHit.addEventListener("click", function() {
+		
+		    if (missionStarted) return;
+		
+		    missionStarted = true;
+		    beginButton.classList.add("pressed");
+		    beginHit.disabled = true;
+		
+		    const message = "Welcome to the ISS. I will be your assistant monitoring your health here from Earth as you voyage to Mars to ensure your safe journey home.";
+		
+		    assistant.classList.remove("hidden");
+		    text.textContent = "";
+		
+		    // Start the audio
+		    audio.currentTime = 0;
+		
+		    audio.play().catch(function(error) {
+		        console.log("Welcome audio error:", error);
+		
+		        // Continue if the audio cannot play
+		        beginMission();
+		    });
+		
+		    // Type the welcome message
+		    let character = 0;
+		
+		    const typing = setInterval(function() {
+		
+		        if (character < message.length) {
+		            text.textContent += message.charAt(character);
+		            character++;
+		        } else {
+		            clearInterval(typing);
+		        }
+		
+		    }, 60);
+		
+		});
+		
+		// Wait until the welcome audio finishes
+		audio.addEventListener("ended", function() {
+		    beginMission();
+		});
+		
+		function beginMission() {
+		
+		    if (missionRunning) return;
+		
+		    missionRunning = true;
+		
+		    // Reveal the mission displays
+		    missionBar.classList.remove("hidden");
+		    dosimeter.classList.remove("hidden");
+		
+		    // Start mission progress
+		    updateMission();
+		
+		    missionTimer = setInterval(function() {
+		
+		        if (travelled < totalDistance) {
+		
+		            travelled += 12000000;
+		
+		            if (travelled >= totalDistance) {
+		                travelled = totalDistance;
+		            }
+		
+		            updateMission();
+		        }
+		
+		    }, 1000);
+		
+		    // Start dosimeter updates
+		    updateDosimeter();
+		
+		    doseTimer = setInterval(updateDosimeter, 3000);
+		
+		}
+
+    // ---------- turning to window ----------
+
+    returnButton.addEventListener("click", function() {
+
+        if (!atMedicalStation) return;
+
+        atMedicalStation = false;
+
+        room.classList.remove("turning");
+
+        returnButton.classList.add("hidden");
+
+        checkTimer = setTimeout(function() {
+            checkButton.classList.remove("hidden");
+        }, 2000);
+    });
+
+    // ---------- load readings ----------
+
+    monitorButton.addEventListener("click", function() {
+
+        returnTimer = setTimeout(function() {
+            returnButton.classList.remove("hidden");
+        }, 2000);
+
+        const readings = [
+            ["heart", "72 BPM"],
+            ["oxygen", "98%"],
+            ["temperature", "36.8 °C"],
+            ["respiration", "16 / MIN"],
+            ["pressure", "118/76 mmHg"]
+        ];
+
+        monitorButton.disabled = true;
+        monitorButton.textContent = "LOADING READINGS...";
+
+        readings.forEach(function(reading, index) {
+
+            setTimeout(function() {
+
+                document.getElementById(reading[0]).textContent =
+                    reading[1];
+
+                if (index === readings.length - 1) {
+                    monitorButton.textContent = "READINGS LOADED";
+                }
+
+            }, (index + 1) * 700);
+
+        });
+
+    });
+
+    // ---------- enter the solar storm shelter ----------
+
+    shelterButton.addEventListener("click", function() {
+    		shelterAudio.pause();
+    		shelterAudio.currentTime=0;
+    		shelterAudio.play();
+    		
+
+        checkButton.classList.add("hidden");
+        returnButton.classList.add("hidden");
+        shelterButton.classList.add("hidden");
+
+        clearTimeout(checkTimer);
+        clearTimeout(returnTimer);
+
+        sceneFade.classList.add("active");
+
+        setTimeout(function() {
+
+            stormShelter.classList.add("active");
+
+            sceneFade.classList.remove("active");
+
+            // start the dosimeter's return to normal
+            shelterStartRadiation = radiation;
+            shelterEntered = Date.now();
+
+            const messages = [
+                "You are now inside the storm shelter.",
+                "This room is made of flexible polyethylene bags filled with water and hydrogen to shield you from particle radiation from solar storms.",
+                "Allow your dosimeter to return to safe levels."
+            ];
+            let messageIndex = 0;
+
+            assistant.classList.remove("hidden");
+
+            function showMessage() {
+                text.textContent = "";
+                let character = 0;
+
+                const typing = setInterval(function() {
+                    if (character < messages[messageIndex].length) {
+                        text.textContent += messages[messageIndex].charAt(character);
+                        character++;
+                    } else {
+                        clearInterval(typing);
+                        messageIndex++;
+
+                        if (messageIndex < messages.length) {
+                            setTimeout(showMessage, 500);
+                        }
+                    }
+                }, 60);
+            }
+
+            showMessage();
+
+            updateDosimeter();
+
+        }, 1200);
+
+    });
+
+    // ---------- mission progress / shrinking earth ----------
+
+    function updateMission() {
+
+        const remaining = totalDistance - travelled;
+        const progress = (travelled / totalDistance) * 100; // percent travelled
+
+        // reveal shelter button at 70% mission progress
+        if (progress >= 70 && !shelterTriggered) {
+            shelterTriggered = true;
+            shelterButton.classList.remove("hidden");
+        }
+
+        document.getElementById("distance").textContent =
+            Math.round(travelled).toLocaleString();
+
+        document.getElementById("remaining").textContent =
+            Math.round(remaining).toLocaleString();
+
+        document.getElementById("progress").textContent =
+            progress.toFixed(1) + "%";
+
+        document.getElementById("progressFill").style.width =
+            progress + "%";
+
+        const scale = Math.max(
+            0.05,
+            1 - (progress / 100) * 0.95
+        );
+
+        earth.style.transform =
+            "translate(100px, 100px) scale(" + scale + ")";
+
+    }
+
+
+
+    // ---------- build CST survey ----------
+
+    const wrapper = document.createElement("div");
+    wrapper.className = "survey hidden";
+
+    cstQuestions.forEach((spectrum) => {
+        const row = document.createElement("div");
+        row.className = "survey-q";
+
+        const left_label = document.createElement("label");
+        left_label.className = "label-left";
+        left_label.textContent = spectrum[0];
+        row.appendChild(left_label);
+
+        const scale = document.createElement("div");
+        scale.className = "survey-scale";
+
+        for (let i = 1; i <= 6; i++) {
+            const input_button = document.createElement("input");
+            input_button.type = "radio";
+            input_button.value = i;
+            input_button.name = spectrum[0];
+
+            scale.appendChild(input_button);
+        }
+
+        row.appendChild(scale);
+
+        const right_label = document.createElement("label");
+        right_label.className = "label-right";
+        right_label.textContent = spectrum[1];
+
+        row.appendChild(right_label);
+
+        wrapper.appendChild(row);
+
+    });
+
+    const closeButton = document.createElement("button");
+    closeButton.type = "button";
+    closeButton.className = "survey-close";
+    closeButton.textContent = "✕";
+    closeButton.setAttribute("aria-label", "Close survey");
+
+    closeButton.addEventListener("click", function() {
+        wrapper.classList.add("hidden");
+    });
+
+    wrapper.appendChild(closeButton);
+
+    const submitButton = document.createElement("button");
+    submitButton.type = "button";
+    submitButton.className = "monitor-button";
+    submitButton.textContent = "SUBMIT";
+
+    submitButton.addEventListener("click", function() {
+        const values = [];
+
+        cstQuestions.forEach(function(q) {
+            const selected = wrapper.querySelector('input[name="' + q[0] + '"]:checked');
+            if (selected) values.push(Number(selected.value));
+        });
+
+        // don't submit until every question has an answer
+        if (values.length < cstQuestions.length) return;
+
+        const total = values.reduce(function(sum, v) { return sum + v; }, 0);
+        const average = total / values.length;
+
+        document.getElementById("cst-value").textContent = average.toFixed(1) + " / 6";
+        wrapper.classList.add("hidden");
+    });
+
+    wrapper.appendChild(submitButton);
+
+    cstSurvey.appendChild(wrapper);
+
+});
+</script>
+<!--audio of urs truly -->
+
+<audio id="welcomeAudio" preload="auto">
+    <source src="begin.wav" type="audio/wav">
+</audio>
+<audio id= "shelterAudio" preload="auto">
+	<source src="shelter.wav" type="audio/wav">
+</audio>
+
+</body>
+</html>
